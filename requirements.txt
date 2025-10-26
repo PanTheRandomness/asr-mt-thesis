@@ -1,0 +1,15 @@
+# ML
+torch
+transformers
+datasets
+librosa
+sentencepiece
+
+# ASR Metrics
+jiwer
+
+# MT Metrics
+evaluate
+nltk
+sacrebleu
+comet-ml
