@@ -1,3 +1,4 @@
+nemo
 # ML
 torch
 transformers
@@ -13,3 +14,7 @@ evaluate
 nltk
 sacrebleu
 comet-ml
+
+#NVIDIA NeMo (for Parakeet)
+nemo_toolkit[asr]
+soundfile
