@@ -13,11 +13,11 @@ Erityishuomio on kiinnitetty mallien **kvantisointiin** rajoitetun VRAM-muistin 
 ### Puheentunnistus (ASR)
 ASR-mallit suorittavat **Speech-to-Text (STT)** -transkription.
 
-| Malli                    | Arkkitehtuuri    | Koko       | Huomioitavaa                                              |
-|:-------------------------|:-----------------|:-----------|:----------------------------------------------------------|
-| **Whisper large v2**     | Transformer      | Suuri      | Käytetään ensisijaisesti **transkriptioon (STT)**.        |
-| **Wav2Vec 2.0 XLRS-53**  | Wav2Vec2         | Keskisuuri | Versio koulutettu Common Voice 26:lla ja Espeak-kielellä. |
-| **Parakeet-tdt-0.6b-v3** | Transducer (TDT) | 600M       | **NeMo-malli**, optimoitu korkeaan suorituskykyyn.        |
+| Malli                    | Arkkitehtuuri    | Koko            | Huomioitavaa                                                                     |
+|:-------------------------|:-----------------|:----------------|:---------------------------------------------------------------------------------|
+| **Whisper large v2**     | Transformer      | Suuri           | Käytetään ensisijaisesti **transkriptioon (STT)**.                               |
+| **Wav2Vec 2.0 XLRS-53**  | Wav2Vec2         | Suuri (n. 300M) | Esikoulutettu malli **53 kielellä**. Tarjoaa parhaan monikielisen yleistyskyvyn. |
+| **Parakeet-tdt-0.6b-v3** | Transducer (TDT) | 600M            | **NeMo-malli**, optimoitu korkeaan suorituskykyyn.                               |
 
 ### Konekäännös (MT)
 MT-mallit suorittavat **Text-to-Text** -käännöksen.

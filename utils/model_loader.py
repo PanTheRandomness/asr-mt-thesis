@@ -52,6 +52,12 @@ def load_quantized_model_and_processor(model_class, processor_class, model_name:
 # --- Specific loading functions ---
 
 def load_whisper_asr_model(model_name: str):
+    """
+    Loads Whisper Large with 4-bit quantisation.
+
+    :param model_name: Model name
+    :return: quantised model & processor
+    """
     from transformers import WhisperProcessor, WhisperForConditionalGeneration
     return load_quantized_model_and_processor(
         WhisperForConditionalGeneration,
@@ -67,8 +73,8 @@ def load_nemo_asr_model(model_name: str):
     NOTE: NeMo models are loaded as is. I attempt to use PF16 (Half Precision) on GPU to save VRAM,
     as bnb 4-bit quantisation is not directly supported.
 
-    :param model_name:
-    :return:
+    :param model_name: Model name
+    :return: Model, processor, device
     """
 
     global DEVICE
@@ -95,7 +101,30 @@ def load_nemo_asr_model(model_name: str):
         print("NOTE: NeMo models do not support 4-bit quantisation.")
         return None, None, DEVICE
 
+def load_wav2vec2_asr_model(model_name: str):
+    """
+    Loads Wav2Vec2 model with 4-bit quantisation (if possible).
+
+    :param model_name: Model name
+    :return: Quantised model & processor
+    """
+
+    from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+    return load_quantized_model_and_processor(
+        Wav2Vec2ForCTC,
+        Wav2Vec2Processor,
+        model_name,
+        "asr"
+    )
+
 def load_nllb_mt_model(model_name: str):
+    """
+    Loads NLLB model.
+
+    :param model_name: Model name
+    :return: Quantised model & processor
+    """
+
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
     return load_quantized_model_and_processor(
         AutoModelForSeq2SeqLM,
