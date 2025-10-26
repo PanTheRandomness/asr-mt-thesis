@@ -1,0 +1,124 @@
+import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+from utils.model_loader import load_nllb_mt_model
+from typing import List, Tuple
+
+MODEL_ID = "facebook/nllb-200-distilled-600M"
+NLLB_LANG_MAP = {
+    "fi": "fin_Latn",
+    "en": "eng_Latn",
+    "fr": "fra_Latn"
+}
+
+def load_data(file_path: str) -> List[str]:
+    """
+    Load from text file (one sentence per line).
+
+    :param file_path: Path to text file
+    :return: Source text list
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            source_texts = [line.strip() for line in f.readlines() if line.strip()]
+        print(f"Source texts loaded: {len(source_texts)} from file: {file_path}")
+        return source_texts
+    except FileNotFoundError:
+        print(f"ERROR: Fine {file_path} not found.")
+        return []
+
+def save_results(results: List[str], output_path: str):
+    """
+    Saves translation results to file for evaluation.py.
+
+    :param results: List of translation results
+    :param output_path: Path for result file
+    """
+    print(f"Saving translation results to file: {output_path}")
+    with open(output_path, 'w', encoding='utc-8') as f:
+        for text in results:
+            f.write(text + "\n")
+        print("Saving complete.")
+
+def translate_texts(
+        model: AutoModelForSeq2SeqLM,
+        tokenizer: AutoTokenizer,
+        texts: List[str],
+        src_lang: str,
+        tgt_lang: str,
+        batch_size: int = 4
+) -> List[str]:
+    """
+    Translates source texts.
+
+    :param model: Model
+    :param tokenizer: Tokeniser
+    :param texts: List of source texts
+    :param src_lang: Source language
+    :param tgt_lang: Target language
+    :param batch_size: Batch size
+    :return: Translated texts
+    """
+
+    src_code = NLLB_LANG_MAP.get(src_lang, src_lang)
+    tgt_code = NLLB_LANG_MAP.get(tgt_lang, tgt_lang)
+
+    try:
+        target_id = tokenizer.lang_code_to_id[tgt_code]
+    except KeyError:
+        print(f"ERROR: Target language :{tgt_lang} ({tgt_code}) is not supported by model :{MODEL_ID}.")
+        return []
+
+    print(f"Starting translation: {src_lang} ({src_code}) -> {tgt_lang} ({tgt_code}).")
+
+    translated_texts = []
+    model.eval()
+
+    tokenizer.src_lang = src_code
+    with torch.no_grad():
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+
+            inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=512)
+
+            input_ids = inputs.input_ids.to(model.device)
+            attention_mask = inputs.attention_mask.to(model.device)
+
+            generated_ids = model.generate(
+                input_ids,
+                attention_mask=attention_mask,
+                forced_bos_token_id=target_id,
+                max_length=512,
+                num_beams=4,
+                do_sample=False,
+            )
+
+            translated_batch = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            translated_texts.extend(translated_batch)
+
+            print(f"Translated {len(translated_texts)} / {len(texts)}")
+
+    return translated_texts
+
+
+def main(src_lang: str, tgt_lang: str, source_file: str):
+
+    source_path = f"../data/{src_lang}/{source_file}"
+    output_file = f"nllb_{src_lang}2{tgt_lang}_results.txt"
+
+    model, tokenizer, device = load_nllb_mt_model(MODEL_ID)
+
+    if model is None or tokenizer is None:
+        print("Model loading failed. Terminating.")
+        return
+
+    source_texts = load_data(source_path)
+
+    if not source_texts:
+        print("No translatable data. Terminating.")
+        return
+
+    translated_texts = translate_texts(model, tokenizer, source_texts, src_lang, tgt_lang, batch_size=4)
+    save_results(translated_texts, output_file)
+
+    print(f"NLLB Translation ({src_lang}->{tgt_lang}) complete. Saved to file: {output_file}")
