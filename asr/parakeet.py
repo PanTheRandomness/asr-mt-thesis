@@ -1,11 +1,11 @@
 import os
 import torch
 from typing import Literal, List
-from ..utils.model_loader import load_nemo_asr_model, DEVICE
+from ..utils.model_loader import load_nemo_asr_model
+from ..utils.constants import ASR_ALLOWED_LANGUAGES
 
 PARAKEET_MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v3"
 PARAKEET_MODEL, _, DEVICE = load_nemo_asr_model(PARAKEET_MODEL_NAME)
-ALLOWED_LANGUAGES = ["finnish", "english", "french"]
 
 if PARAKEET_MODEL is None:
     print("Model loading failed. Terminating process.")
@@ -15,7 +15,7 @@ else:
 
 def transcribe_audio_parakeet(
         audio_path: str,
-        target_language: Literal["finnish", "english", "french"]
+        target_language: ASR_ALLOWED_LANGUAGES
 ) -> str:
     """
     Creates a Transcription with Parakeet-tdt-0.6b-v3 (NeMo version).

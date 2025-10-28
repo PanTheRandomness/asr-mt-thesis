@@ -165,3 +165,18 @@ def load_nllb_mt_model(model_name: str):
 
     model.eval()
     return model, tokenizer, DEVICE
+
+def load_bloom_mt_model(model_name: str):
+    """
+    Loads BLOOM model with 4-bit quantisation.
+
+    :param model_name: Model name
+    :return: Quantised model & tokeniser
+    """
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    return load_quantized_model_and_processor(
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        model_name,
+        "mt"
+    )

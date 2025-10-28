@@ -1,51 +1,19 @@
 import torch
+import os
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
 from utils.model_loader import load_nllb_mt_model
-from typing import List, Tuple
+from utils.mt_data_handler import load_data, save_results
+from typing import List
+from utils.constants import NLLB_LANG_MAP, MT_ALLOWED_LANGUAGES
 
 MODEL_ID = "facebook/nllb-200-distilled-600M"
-NLLB_LANG_MAP = {
-    "fi": "fin_Latn",
-    "en": "eng_Latn",
-    "fr": "fra_Latn"
-}
 
-def load_data(file_path: str) -> List[str]:
-    """
-    Load from text file (one sentence per line).
-
-    :param file_path: Path to text file
-    :return: Source text list
-    """
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            source_texts = [line.strip() for line in f.readlines() if line.strip()]
-        print(f"Source texts loaded: {len(source_texts)} from file: {file_path}")
-        return source_texts
-    except FileNotFoundError:
-        print(f"ERROR: Fine {file_path} not found.")
-        return []
-
-def save_results(results: List[str], output_path: str):
-    """
-    Saves translation results to file for evaluation.py.
-
-    :param results: List of translation results
-    :param output_path: Path for result file
-    """
-    print(f"Saving translation results to file: {output_path}")
-    with open(output_path, 'w', encoding='utc-8') as f:
-        for text in results:
-            f.write(text + "\n")
-        print("Saving complete.")
-
-def translate_texts(
+def translate_texts_nllb(
         model: AutoModelForSeq2SeqLM,
         tokenizer: AutoTokenizer,
         texts: List[str],
-        src_lang: str,
-        tgt_lang: str,
+        src_lang: MT_ALLOWED_LANGUAGES,
+        tgt_lang: MT_ALLOWED_LANGUAGES,
         batch_size: int = 4
 ) -> List[str]:
     """
@@ -101,10 +69,12 @@ def translate_texts(
     return translated_texts
 
 
-def main(src_lang: str, tgt_lang: str, source_file: str):
+def main(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES, source_file: str):
 
-    source_path = f"../data/{src_lang}/{source_file}"
-    output_file = f"nllb_{src_lang}2{tgt_lang}_results.txt"
+    source_path = os.path.join("..", "data", src_lang, source_file)
+    output_dir = os.path.join("..", "results", "mt", MODEL_ID.replace("/", "_"))
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f"nllb_{src_lang}2{tgt_lang}_results.txt")
 
     model, tokenizer, device = load_nllb_mt_model(MODEL_ID)
 
@@ -118,7 +88,7 @@ def main(src_lang: str, tgt_lang: str, source_file: str):
         print("No translatable data. Terminating.")
         return
 
-    translated_texts = translate_texts(model, tokenizer, source_texts, src_lang, tgt_lang, batch_size=4)
+    translated_texts = translate_texts_nllb(model, tokenizer, source_texts, src_lang, tgt_lang, batch_size=4)
     save_results(translated_texts, output_file)
 
     print(f"NLLB Translation ({src_lang}->{tgt_lang}) complete. Saved to file: {output_file}")

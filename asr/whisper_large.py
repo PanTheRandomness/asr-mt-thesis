@@ -1,11 +1,10 @@
 import librosa
 import os
-from typing import Literal
 from ..utils.model_loader import load_whisper_asr_model
+from ..utils.constants import ASR_ALLOWED_LANGUAGES, ASR_LANG_CODES_FULL
 
 WHISPER_MODEL_NAME = "openai/whisper-large-v2"
 WHISPER_MODEL, WHISPER_PROCESSOR, DEVICE = load_whisper_asr_model(WHISPER_MODEL_NAME)
-ALLOWED_LANGUAGES = ["finnish", "english", "french"]
 
 if WHISPER_MODEL is None:
     print("Model loading failed. Terminating process.")
@@ -15,7 +14,7 @@ else:
 
 def transcribe_audio_whisper(
         audio_path: str,
-        target_language: Literal["finnish", "english", "french"],
+        target_language: ASR_ALLOWED_LANGUAGES,
         asr_task: str = "transcribe"
 ) -> str:
     """
@@ -29,6 +28,10 @@ def transcribe_audio_whisper(
 
     if not os.path.exists(audio_path):
         print(f"ERROR: File '{audio_path}' not found.")
+        return ""
+
+    if target_language not in ASR_LANG_CODES_FULL:
+        print(f"ERROR: Language '{target_language}' not supported by this script")
         return ""
 
     try:
