@@ -1,3 +1,4 @@
+from numpy.core.defchararray import startswith
 from transformers import BitsAndBytesConfig
 import torch
 import os
@@ -180,3 +181,36 @@ def load_bloom_mt_model(model_name: str):
         model_name,
         "mt"
     )
+
+def load_opus_mt_model(model_name: str):
+    """
+    Loads Helsinki-NLP Opus-MT model (Seq2Seq).
+
+    :param model_name: Model name from Hugging Face (e.g., "Helsinki-NLP/opus-mt-en-fi")
+    :return: Loaded model, tokeniser, and device.
+    """
+
+    from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+    import torch
+
+    print(f"[MT] Loading {model_name} to device: {DEVICE}.")
+
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    except Exception as e:
+        print(f"ERROR loading tokenizer for {model_name}: {e}.")
+        return None, None, DEVICE
+
+    try:
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
+        )
+        model.to(DEVICE)
+        print(f"✅ Loaded Opus-MT model non-quantised on {DEVICE} (Dtype: {model.dtype}.")
+    except Exception as e:
+        print(f"ERROR loading model {model_name}: {e}.")
+        return None, None, DEVICE
+
+    model.eval()
+    return model, tokenizer, DEVICE
