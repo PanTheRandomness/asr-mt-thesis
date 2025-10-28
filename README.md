@@ -48,7 +48,7 @@ Laitteisto koostuu kierrätetyistä ja varastosta löytyvistä komponenteista, e
 | Komponentti           | Tiedot                            | Huomioitavaa                                                  |
 |:----------------------|:----------------------------------|:--------------------------------------------------------------|
 | **GPU**               | ASUS RTX 2060 DUAL OC EVO **6GB** | Vaatii suurempien mallien **4-bittisen (INT4) kvantisoinnin** |
-| **CPU**               | Intel Core-i5-660                 |                                                               |
+| **CPU**               | Intel Core-i5-6600                |                                                               |
 | **RAM**               | Kingston 8 GB Fury Beast DDR4     |                                                               |
 | **Käyttöjärjestelmä** | Linux (Ubuntu/LXQt etäkäyttöön)   | `bitsandbytes` vaatii Linux-ympäristön                        |
 
