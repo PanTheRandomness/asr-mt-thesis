@@ -1,6 +1,6 @@
 import torch
 import os
-from typing import List, Literal
+from typing import List
 
 from ..utils.model_loader import load_bloom_mt_model
 from ..utils.mt_data_handler import load_data, save_results
