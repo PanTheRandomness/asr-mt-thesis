@@ -1,7 +1,6 @@
 from numpy.core.defchararray import startswith
 from transformers import BitsAndBytesConfig
 import torch
-import os
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 QUANTIZATION_CONFIG_4BIT = BitsAndBytesConfig(
@@ -104,19 +103,57 @@ def load_nemo_asr_model(model_name: str):
 
 def load_wav2vec2_asr_model(model_name: str):
     """
-    Loads Wav2Vec2 model with 4-bit quantisation (if possible).
+    Loads Wav2Vec2 model by constructing the Processor from Auto components.
 
     :param model_name: Model name
     :return: Quantised model & processor
     """
+    from transformers import AutoFeatureExtractor, AutoTokenizer, Wav2Vec2Processor, Wav2Vec2ForCTC
+    import torch
+    import traceback
 
-    from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
-    return load_quantized_model_and_processor(
-        Wav2Vec2ForCTC,
-        Wav2Vec2Processor,
-        model_name,
-        "asr"
-    )
+    global DEVICE
+
+    print(f"[ASR] Loading {model_name} (FP16/FP32 fallback) to device: {DEVICE}. Robust Auto construction.")
+
+    try:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
+        print("✅ Feature Extractor loaded.")
+    except Exception as e:
+        print(f"ERROR loading AutoFeatureExtractor: {e}")
+        traceback.print_exc()
+        return None, None, DEVICE
+
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        print("✅ AutoTokenizer loaded.")
+    except Exception as e:
+        print(f"FATAL ERROR loading AutoTokenizer: {e}")
+        traceback.print_exc()
+        return None, None, DEVICE
+
+    try:
+        processor = Wav2Vec2Processor(feature_extractor=feature_extractor, tokenizer=tokenizer)
+        print("✅ Processor constructed successfully from components.")
+    except Exception as e:
+        print(f"ERROR constructing Wav2Vec2Processor: {e}")
+        traceback.print_exc()
+        return None, None, DEVICE
+
+    try:
+        model = Wav2Vec2ForCTC.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32  # FP16 VRAM:in säästämiseksi
+        )
+        model.to(DEVICE)
+        print(f"✅ Loaded Wav2Vec2ForCTC model non-quantised/FP16 on {DEVICE}.")
+    except Exception as e:
+        print(f"ERROR loading model {model_name}: {e}")
+        traceback.print_exc()
+        return None, None, DEVICE
+
+    model.eval()
+    return model, processor, DEVICE
 
 def load_nllb_mt_model(model_name: str):
     """

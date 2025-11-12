@@ -13,11 +13,18 @@ Erityishuomio on kiinnitetty mallien **kvantisointiin** rajoitetun VRAM-muistin 
 ### Puheentunnistus (ASR)
 ASR-mallit suorittavat **Speech-to-Text (STT)** -transkription.
 
-| Malli                    | Arkkitehtuuri    | Koko            | Huomioitavaa                                                                     |
-|:-------------------------|:-----------------|:----------------|:---------------------------------------------------------------------------------|
-| **Whisper large v2**     | Transformer      | Suuri           | Käytetään ensisijaisesti **transkriptioon (STT)**.                               |
-| **Wav2Vec 2.0 XLRS-53**  | Wav2Vec2         | Suuri (n. 300M) | Esikoulutettu malli **53 kielellä**. Tarjoaa parhaan monikielisen yleistyskyvyn. |
-| **Parakeet-tdt-0.6b-v3** | Transducer (TDT) | 600M            | **NeMo-malli**, optimoitu korkeaan suorituskykyyn.                               |
+| Malli                              | Arkkitehtuuri    | Koko            | Huomioitavaa                                                                                                                                       |
+|:-----------------------------------|:-----------------|:----------------|:---------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Whisper large v2**               | Transformer      | Suuri           | Käytetään ensisijaisesti **transkriptioon (STT)**.                                                                                                 |
+| **Wav2Vec 2.0 XLRS-53 (3 mallia)** | Wav2Vec2         | Suuri (n. 300M) | **Kielikohtainen hienosäätö** parhaan suorituskyvyn saavuttamiseksi.                                                                               |
+| **Parakeet-tdt-0.6b-v3**           | Transducer (TDT) | 600M            | **NeMo-malli**, optimoitu korkeaan suorituskykyyn.                                                                                                 |
+
+#### Wav2Vec 2.0 XLSR-53 -mallit (Yksityiskohtainen erittely)
+| Mallinimi | Kieli | Hugging Face ID | Huomioitavaa |
+|:---|:---|:---|:---|
+| **XLSR-53 Finnish** | Suomi | `jonatasgrosman/wav2vec2-large-xlsr-53-finnish` | Suomelle optimoitu malli. |
+| **Wav2Vec2 960h** | Englanti | `facebook/wav2vec2-large-960h` | Englanille optimoitu malli. |
+| **XLSR-53 French** | Ranska | `facebook/wav2vec2-large-xlsr-53-french` | Ranskalle optimoitu malli. |
 
 ### Konekäännös (MT)
 MT-mallit suorittavat **Text-to-Text** -käännöksen.
@@ -69,6 +76,13 @@ Projekti käyttää **Python 3.12**-versiota. Kaikki tarvittavat kirjastot on lu
 /Pääprojekti
 ├── .venv/                   # Virtuaaliympäristö
 ├── data/                    # Koulutus- ja testiaineistot (.wav, .txt, jne.)
+│   ├── en                   # Hakemisto englanninkieliselle aineistolle. Sis. .wav-tiedostot sekä en_SOURCE.txt.
+│   ├── fi                   # Hakemisto suomenkieliselle aineistolle. Sis. .wav-tiedostot sekä fi_SOURCE.txt.
+│   ├── fr                   # Hakemisto ranskankieliselle aineistolle. Sis. .wav-tiedostot sekä fr_SOURCE.txt.
+│   └── results              # Tulokset
+│       ├── asr              # ASR-tulokset malleittain
+│       ├── mt               # MT-tulokset malleittain
+│       └── evaluation       # Automaattisten metriikoiden arviointitulokset
 ├── asr/                     # ASR-mallien skriptit
 │   ├── whisper_medium.py    # Koodi Whisper Large v2 -mallille
 │   ├── wav2vec2_xlsr.py     # Koodi Wav2Vec 2.0 XLSR-53 -mallille
