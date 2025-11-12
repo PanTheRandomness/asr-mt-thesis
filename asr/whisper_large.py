@@ -1,13 +1,10 @@
 import sys
 import os
-import torch
-from dulwich.pack import chunks_length
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import glob
 import re
-import librosa
 
 from transformers import pipeline
 
@@ -26,8 +23,7 @@ if WHISPER_MODEL is not None and WHISPER_PROCESSOR is not None:
             "automatic-speech-recognition",
             model=WHISPER_MODEL,
             tokenizer=WHISPER_PROCESSOR.tokenizer,
-            feature_extractor=WHISPER_PROCESSOR.feature_extractor,
-            # device=DEVICE
+            feature_extractor=WHISPER_PROCESSOR.feature_extractor
         )
     except Exception as e:
         print(f"ERROR creating pipeline: {e}")
@@ -57,11 +53,6 @@ def transcribe_audio_whisper(
         print(f"ERROR: File '{audio_path}' not found.")
         return ""
 
-#    language_full_name = ASR_LANG_CODES_FULL.get(target_language)
-#    if not language_full_name:
-#        print(f"ERROR: Language '{target_language}' not supported by this script")
-#        return ""
-
     try:
         result = WHISPER_PIPE(
             audio_path,
@@ -77,34 +68,6 @@ def transcribe_audio_whisper(
     except Exception as e:
         print(f"ERROR in audio processing: {e}")
         return ""
-
-    input_features = WHISPER_PROCESSOR(
-        audio_input,
-        sampling_rate=16000,
-        return_tensors="pt"
-    ).input_features
-
-    if DEVICE.startswith("cuda"):
-        input_features = input_features.to(DEVICE)
-        input_features = input_features.to(torch.float16)
-
-    attention_mask = torch.ones_like(input_features[:, 0, :]).to(input_features.device)
-
-    decoder_ids = WHISPER_PROCESSOR.get_decoder_prompt_ids(
-        language=target_language,
-        task=asr_task
-    )
-
-    predicted_ids = WHISPER_MODEL.generate(
-        input_features=input_features,
-        forced_decoder_ids=decoder_ids,
-        max_length=700,
-        attention_mask=attention_mask
-    )
-
-    transcription = WHISPER_PROCESSOR.batch_decode(predicted_ids, skip_special_tokens=True)[0]
-
-    return transcription
 
 def main(langs: list[str] = SHORT_LANG_CODES):
     """
