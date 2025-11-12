@@ -18,8 +18,7 @@ else:
     print(f"✅ {WAV2VEC2_MODEL_NAME} has been loaded and is in use in {DEVICE}")
 
 def transcribe_audio_wav2vec2(
-        audio_path: str,
-        target_language: ASR_ALLOWED_LANGUAGES
+        audio_path: str
 ) -> str:
     """
     Creates a Transcription with Wav2Vec 2.0 XLSR-53 (CTC).

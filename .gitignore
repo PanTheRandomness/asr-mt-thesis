@@ -38,3 +38,4 @@ hf_cache
 results/
 logs/
 *.log
+*.err
