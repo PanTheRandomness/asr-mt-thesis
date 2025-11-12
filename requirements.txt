@@ -1,3 +1,4 @@
+torchaudio
 nemo
 # ML
 torch
