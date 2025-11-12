@@ -11,6 +11,7 @@ from transformers import pipeline
 from utils.model_loader import load_whisper_asr_model
 from utils.constants import SHORT_LANG_CODES, ASR_LANG_CODES_FULL, ASR_ALLOWED_LANGUAGES
 from utils.asr_data_handler import save_asr_single_result
+from utils.sentence_splitter import SentenceSplitter
 
 WHISPER_MODEL_NAME = "openai/whisper-large-v2"
 WHISPER_MODEL, WHISPER_PROCESSOR, DEVICE = load_whisper_asr_model(WHISPER_MODEL_NAME)
@@ -115,21 +116,7 @@ def run_whisper_transcription_on_datasets(langs: list[str] = SHORT_LANG_CODES):
             )
 
             if transcription:
-                sentences = re.split(r'([.!?])\s', transcription.strip())
-
-                final_sentences = []
-                for i in range(0, len(sentences), 2):
-                    sentence_segment = sentences[i].strip()
-                    if sentence_segment:
-                        if i + 1 < len(sentences):
-                            sentence_segment += sentences[i+1]
-                        final_sentences.append(sentence_segment)
-
-                final_output = '\n'.join(final_sentences)
-
-                if not final_sentences:
-                    # Save raw transcription if segmentation fails
-                    final_output = transcription.strip()
+                final_output = SentenceSplitter.split_and_clean(transcription)
 
                 save_asr_single_result(
                     transcription=final_output,

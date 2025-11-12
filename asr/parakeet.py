@@ -1,16 +1,17 @@
 import sys
 import os
 import glob
+import re
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import torch
-import torchaudio
-from typing import List
+import librosa
 
 from utils.model_loader import load_nemo_asr_model
 from utils.constants import ASR_LANG_CODES_FULL
 from utils.asr_data_handler import save_asr_single_result
+from utils.sentence_splitter import SentenceSplitter
 
 PARAKEET_MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v3"
 PARAKEET_MODEL, _, DEVICE = load_nemo_asr_model(PARAKEET_MODEL_NAME)
@@ -20,7 +21,6 @@ if PARAKEET_MODEL is None:
     exit()
 else:
     print(f"✅ NeMo {PARAKEET_MODEL_NAME} has been loaded and is in use in {DEVICE}")
-    # PARAKEET_MODEL.eval()
 
 def transcribe_audio_parakeet(audio_path: str) -> str:
     """
@@ -38,23 +38,39 @@ def transcribe_audio_parakeet(audio_path: str) -> str:
         print(f"ERROR: File '{audio_path}' not found.")
         return ""
 
-    try:
-        signal, sample_rate = torchaudio.load(audio_path)
-        if signal.shape[0] > 1:
-            print(f" [NeMo FIX] Converting stereo (shape {signal.shape} to mono...")
-            signal = torch.mean(signal, dim=0, keepdim=True)
+    TARGET_SR = 16000
 
-        signal = signal.squeeze(0).unsqueeze(0).to(DEVICE)
+    try:
+        print(f"[ASR FIX] Loading audio with librosa (16kHz, mono): {os.path.basename(audio_path)}")
+        audio_data, _ = librosa.load(
+            audio_path,
+            sr=TARGET_SR,
+            mono=True
+        )
+        signal = torch.tensor(audio_data,dtype=torch.float32).to(DEVICE)
+        signal = signal.unsqueeze(0)
         audio_len = torch.tensor([signal.shape[-1]], dtype=torch.long).to(DEVICE)
 
         with torch.no_grad():
-            hypotheses = PARAKEET_MODEL.decode_batch(
-                all_signals=[signal],
-                all_signal_ĺengths=[audio_len]
-            )
+           processed_signal, processed_signal_length = PARAKEET_MODEL.preprocessor(
+               input_signal=signal,
+               length=audio_len
+           )
 
-        if hypotheses and hypotheses[0]:
-            return hypotheses[0][0]
+           encoder_output, encoder_len = PARAKEET_MODEL.forward(
+               processed_signal=processed_signal,
+               processed_signal_length=processed_signal_length
+           )
+
+           hypotheses = PARAKEET_MODEL.decoding.rnnt_decoder_predictions_tensor(
+               encoder_output, encoder_len
+           )
+
+        if hypotheses and hasattr(hypotheses[0], 'text'):
+            raw_transcription = hypotheses[0].text
+
+            final_transcription = SentenceSplitter.split_and_clean(raw_transcription)
+            return final_transcription
         else:
             return "Transcription failed (empty result)."
 
