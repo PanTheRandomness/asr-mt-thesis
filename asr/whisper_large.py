@@ -62,14 +62,15 @@ def transcribe_audio_whisper(
                 "language": target_language,
                 "task": asr_task
             },
-            return_timestamps=True
+            return_timestamps=True,
+            ignore_warning=True
         )
         return result["text"]
     except Exception as e:
         print(f"ERROR in audio processing: {e}")
         return ""
 
-def main(langs: list[str] = SHORT_LANG_CODES):
+def run_whisper_transcription_on_datasets(langs: list[str] = SHORT_LANG_CODES):
     """
     Main function fort Whisper ASR task.
     Iterates through all 24 audio files per language (4 speakers x 6 conditions) and saves the transcriptions.
@@ -87,16 +88,16 @@ def main(langs: list[str] = SHORT_LANG_CODES):
             print(f"ERROR: Language core {short_lang} not recognised.")
             continue
 
-        audio_pattern = os.path.join("data", short_lang, f"{short_lang}-*.wav")
-        audio_files = glob.glob(audio_pattern)
+        data_dir = os.path.join("data", short_lang, f"{short_lang}-*.wav")
+        audio_files = glob.glob(data_dir)
 
         if not audio_files:
-            print(f"No audio files found for language {short_lang} in {audio_pattern}.")
+            print(f"⚠️ No WAV files found for language {short_lang} in {data_dir}.")
             continue
 
-        print(f"Found {len(audio_files)} files for {full_lang}. Processing...")
+        print(f"\n--- Starting Whisper transcription for {full_lang} ({len(audio_files)} files) ---")
 
-        for audio_path in audio_files:
+        for i, audio_path in enumerate(audio_files):
             filename = os.path.basename(audio_path)
             metadata_suffix = filename.replace("-", "_").split('.')[0]
             output_filename = f"{metadata_suffix}_transcription.txt"
@@ -106,7 +107,7 @@ def main(langs: list[str] = SHORT_LANG_CODES):
                 print(f"Skipping {filename}: results already exists at {output_check_path}.")
                 continue
 
-            print(f"--> Transcribing {filename}...")
+            print(f"[{i+1}/{len(audio_files)}] Transcribing: {audio_path}...")
 
             transcription = transcribe_audio_whisper(
                 audio_path=audio_path,
@@ -143,4 +144,4 @@ if __name__ == "__main__":
     # Run for all languages in SHORT_LANG_CODES (default: fi, en, fr)
     # NOTE: Run from project root directory!
     # python asr/whisper_large.py
-    main()
+    run_whisper_transcription_on_datasets()

@@ -1,12 +1,16 @@
 import sys
 import os
+import glob
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import torch
+import torchaudio
 from typing import List
 
 from utils.model_loader import load_nemo_asr_model
-from utils.constants import ASR_ALLOWED_LANGUAGES
+from utils.constants import ASR_LANG_CODES_FULL
+from utils.asr_data_handler import save_asr_single_result
 
 PARAKEET_MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v3"
 PARAKEET_MODEL, _, DEVICE = load_nemo_asr_model(PARAKEET_MODEL_NAME)
@@ -16,17 +20,14 @@ if PARAKEET_MODEL is None:
     exit()
 else:
     print(f"✅ NeMo {PARAKEET_MODEL_NAME} has been loaded and is in use in {DEVICE}")
+    # PARAKEET_MODEL.eval()
 
-def transcribe_audio_parakeet(
-        audio_path: str,
-        target_language: ASR_ALLOWED_LANGUAGES
-) -> str:
+def transcribe_audio_parakeet(audio_path: str) -> str:
     """
     Creates a Transcription with Parakeet-tdt-0.6b-v3 (NeMo version).
     Parakeet recognises the language automatically from 25 european languages.
 
     :param audio_path: Path to audio file (recommended: WAV, 16 kHz, mono)
-    :param target_language: Target language (used as metadata)
     :return: Transcription
     """
 
@@ -38,18 +39,67 @@ def transcribe_audio_parakeet(
         return ""
 
     try:
+        signal, sample_rate = torchaudio.load(audio_path)
+        if signal.shape[0] > 1:
+            print(f" [NeMo FIX] Converting stereo (shape {signal.shape} to mono...")
+            signal = torch.mean(signal, dim=0, keepdim=True)
+
+        signal = signal.squeeze(0).unsqueeze(0).to(DEVICE)
+        audio_len = torch.tensor([signal.shape[-1]], dtype=torch.long).to(DEVICE)
+
         with torch.no_grad():
-            transcriptions: List[str] = PARAKEET_MODEL.transcribe(
-                paths2audio_files=[audio_path],
-                batch_size=1,
-                return_hypotheses=False
+            hypotheses = PARAKEET_MODEL.decode_batch(
+                all_signals=[signal],
+                all_signal_ĺengths=[audio_len]
             )
 
-        if transcriptions:
-            return transcriptions[0]
+        if hypotheses and hypotheses[0]:
+            return hypotheses[0][0]
         else:
             return "Transcription failed (empty result)."
 
     except Exception as e:
-        print(f"ERROR running NeMo model: {e}")
+        print(f"ERROR running NeMo model on file {audio_path}: {e}")
         return ""
+
+def run_parakeet_transcription_on_dataset():
+    """
+    Processes all WAV files for all defined languages in the data/ directory and saves the combined results using
+    the ASR data handler.
+    """
+    model_id = PARAKEET_MODEL_NAME
+
+    for full_lang in ASR_LANG_CODES_FULL:
+        short_lang_code = full_lang[:2].lower()
+
+        data_dir = os.path.join("data", short_lang_code)
+        audio_files = glob.glob(os.path.join(data_dir, "**", "*.wav"), recursive=True)
+
+        if not audio_files:
+            print(f"⚠️ No WAV files found for language {full_lang} in {data_dir}.")
+            continue
+
+        print(f"\n--- Starting Parakeet transcription for {full_lang} ({len(audio_files)} files) ---")
+
+        for i, audio_path in enumerate(audio_files):
+            file_name = os.path.basename(audio_path)
+            print(f"[{i+1}/{len(audio_files)}] Transcribing: {audio_path}...")
+
+            transcription = transcribe_audio_parakeet(audio_path)
+
+            if transcription and "ERROR" not in transcription:
+                base_file_name = os.path.splitext(file_name)[0]
+                output_filename = f"{base_file_name}_transcription.txt"
+
+                save_asr_single_result(
+                    transcription=transcription,
+                    model_id=model_id,
+                    output_filename_with_metadata=output_filename
+                )
+            else:
+                print(f"❌ Failed to transcribe {audio_path}.")
+
+        print(f"--- {full_lang} transcription complete ---")
+
+if __name__ == "__main__":
+    run_parakeet_transcription_on_dataset()

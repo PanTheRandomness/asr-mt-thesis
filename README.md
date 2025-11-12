@@ -104,7 +104,7 @@ Käytä kansiossa `asr/` ja `mt/` olevia skriptejä mallin suorittamiseksi.
 
 **Esimerkki (ASR - Whisper Large v2):**
 ```bash
-python asr/whisper_medium.py
+python -m asr.whisper_large
 ```
 #### Kvantisointi (INT4)
 Suuret mallit (kuten Whisper Large, NLLB ja BLOOM) ladataan automaattisesti 4-bittisesti (`utils/model_loader.py` kautta) VRAM-muistin säästämiseksi.

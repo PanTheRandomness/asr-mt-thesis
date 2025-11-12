@@ -25,13 +25,12 @@ def save_asr_results(
 
     print(f"[ASR Handler] Saving {len(transcriptions)} transcription(s) to file {output_path}")
     try:
-        with open(output_path, 'w', encoding='utc-8') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             for text in transcriptions:
                 f.write(text.strip() + "\n")
             print("Saving complete.")
     except Exception as e:
         print(f"ERROR saving ASR results to file {output_path}: {e}")
-
 
 def save_asr_single_result(
         transcription: str,
@@ -53,7 +52,7 @@ def save_asr_single_result(
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, output_filename_with_metadata)
 
-    print(f"[ASR Handler] Saving single transcription to file: {output_path}")
+    print(f"[ASR Handler] 💾 Saving single transcription to file: {output_path}")
     try:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(transcription.strip() + "\n")
