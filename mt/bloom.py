@@ -1,10 +1,13 @@
-import torch
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import torch
 from typing import List
 
-from ..utils.model_loader import load_bloom_mt_model
-from ..utils.mt_data_handler import load_data, save_results
-from ..utils.constants import MT_ALLOWED_LANGUAGES, BLOOM_LANG_MAP
+from utils.model_loader import load_bloom_mt_model
+from utils.mt_data_handler import load_data, save_results
+from utils.constants import MT_ALLOWED_LANGUAGES, BLOOM_LANG_MAP
 
 MODEL_ID = "bigscience/bloom-560m"
 

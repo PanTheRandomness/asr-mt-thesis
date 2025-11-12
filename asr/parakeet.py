@@ -1,8 +1,12 @@
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import torch
-from typing import Literal, List
-from ..utils.model_loader import load_nemo_asr_model
-from ..utils.constants import ASR_ALLOWED_LANGUAGES
+from typing import List
+
+from utils.model_loader import load_nemo_asr_model
+from utils.constants import ASR_ALLOWED_LANGUAGES
 
 PARAKEET_MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v3"
 PARAKEET_MODEL, _, DEVICE = load_nemo_asr_model(PARAKEET_MODEL_NAME)

@@ -1,14 +1,37 @@
-import librosa
+import sys
 import os
+import torch
+from dulwich.pack import chunks_length
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import glob
 import re
+import librosa
 
-from ..utils.model_loader import load_whisper_asr_model
-from ..utils.constants import SHORT_LANG_CODES, ASR_LANG_CODES_FULL, ASR_ALLOWED_LANGUAGES
-from ..utils.asr_data_handler import save_asr_single_result
+from transformers import pipeline
+
+from utils.model_loader import load_whisper_asr_model
+from utils.constants import SHORT_LANG_CODES, ASR_LANG_CODES_FULL, ASR_ALLOWED_LANGUAGES
+from utils.asr_data_handler import save_asr_single_result
 
 WHISPER_MODEL_NAME = "openai/whisper-large-v2"
 WHISPER_MODEL, WHISPER_PROCESSOR, DEVICE = load_whisper_asr_model(WHISPER_MODEL_NAME)
+
+WHISPER_PIPE = None
+if WHISPER_MODEL is not None and WHISPER_PROCESSOR is not None:
+    print(f"[ASR] Creating ASR pipeline on device: {DEVICE}.")
+    try:
+        WHISPER_PIPE = pipeline(
+            "automatic-speech-recognition",
+            model=WHISPER_MODEL,
+            tokenizer=WHISPER_PROCESSOR.tokenizer,
+            feature_extractor=WHISPER_PROCESSOR.feature_extractor,
+            # device=DEVICE
+        )
+    except Exception as e:
+        print(f"ERROR creating pipeline: {e}")
+        exit()
 
 if WHISPER_MODEL is None:
     print("Model loading failed. Terminating process.")
@@ -34,12 +57,23 @@ def transcribe_audio_whisper(
         print(f"ERROR: File '{audio_path}' not found.")
         return ""
 
-    if target_language not in ASR_LANG_CODES_FULL:
-        print(f"ERROR: Language '{target_language}' not supported by this script")
-        return ""
+#    language_full_name = ASR_LANG_CODES_FULL.get(target_language)
+#    if not language_full_name:
+#        print(f"ERROR: Language '{target_language}' not supported by this script")
+#        return ""
 
     try:
-        audio_input, _ = librosa.load(audio_path, sr=16000)
+        result = WHISPER_PIPE(
+            audio_path,
+            chunk_length_s=30,
+            stride_length_s=(4, 2),
+            generate_kwargs={
+                "language": target_language,
+                "task": asr_task
+            },
+            return_timestamps=True
+        )
+        return result["text"]
     except Exception as e:
         print(f"ERROR in audio processing: {e}")
         return ""
@@ -48,10 +82,13 @@ def transcribe_audio_whisper(
         audio_input,
         sampling_rate=16000,
         return_tensors="pt"
-    ).input__features
+    ).input_features
 
     if DEVICE.startswith("cuda"):
         input_features = input_features.to(DEVICE)
+        input_features = input_features.to(torch.float16)
+
+    attention_mask = torch.ones_like(input_features[:, 0, :]).to(input_features.device)
 
     decoder_ids = WHISPER_PROCESSOR.get_decoder_prompt_ids(
         language=target_language,
@@ -59,9 +96,10 @@ def transcribe_audio_whisper(
     )
 
     predicted_ids = WHISPER_MODEL.generate(
-        inputs=input_features,
+        input_features=input_features,
         forced_decoder_ids=decoder_ids,
-        max_length=448
+        max_length=700,
+        attention_mask=attention_mask
     )
 
     transcription = WHISPER_PROCESSOR.batch_decode(predicted_ids, skip_special_tokens=True)[0]
@@ -86,7 +124,7 @@ def main(langs: list[str] = SHORT_LANG_CODES):
             print(f"ERROR: Language core {short_lang} not recognised.")
             continue
 
-        audio_pattern = os.path.join("..", "data", short_lang, f"{short_lang}-*.wav")
+        audio_pattern = os.path.join("data", short_lang, f"{short_lang}-*.wav")
         audio_files = glob.glob(audio_pattern)
 
         if not audio_files:
@@ -100,7 +138,7 @@ def main(langs: list[str] = SHORT_LANG_CODES):
             metadata_suffix = filename.replace("-", "_").split('.')[0]
             output_filename = f"{metadata_suffix}_transcription.txt"
 
-            output_check_path = os.path.join("..", "results", "asr", MODEL_SHORT_NAME, output_filename)
+            output_check_path = os.path.join("data", "results", "asr", MODEL_SHORT_NAME, output_filename)
             if os.path.exists(output_check_path):
                 print(f"Skipping {filename}: results already exists at {output_check_path}.")
                 continue
@@ -109,7 +147,7 @@ def main(langs: list[str] = SHORT_LANG_CODES):
 
             transcription = transcribe_audio_whisper(
                 audio_path=audio_path,
-                target_language=full_lang
+                target_language=short_lang
             )
 
             if transcription:

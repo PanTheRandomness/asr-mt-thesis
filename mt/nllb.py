@@ -1,9 +1,13 @@
-import torch
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import torch
+from typing import List
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
 from utils.model_loader import load_nllb_mt_model
 from utils.mt_data_handler import load_data, save_results
-from typing import List
 from utils.constants import NLLB_LANG_MAP, MT_ALLOWED_LANGUAGES
 
 MODEL_ID = "facebook/nllb-200-distilled-600M"

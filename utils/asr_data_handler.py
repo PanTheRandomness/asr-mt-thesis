@@ -49,7 +49,7 @@ def save_asr_single_result(
 
     model_safe_name = model_id.replace("/", "_").replace("-", "_").replace(".", "_")
 
-    output_dir = os.path.join("..", "results", "asr", model_safe_name)
+    output_dir = os.path.join("data", "results", "asr", model_safe_name)
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, output_filename_with_metadata)
 

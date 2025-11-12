@@ -1,10 +1,13 @@
-import torch
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import torch
 from typing import List
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from ..utils.model_loader import load_opus_mt_model
-from ..utils.constants import OPUS_MODEL_MAP, MT_ALLOWED_LANGUAGES, SHORT_LANG_CODES
-from ..utils.mt_data_handler import load_data, save_results
+
+from utils.model_loader import load_opus_mt_model
+from utils.constants import OPUS_MODEL_MAP, MT_ALLOWED_LANGUAGES
+from utils.mt_data_handler import load_data, save_results
 
 def get_opus_model_id(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES) -> str:
     """

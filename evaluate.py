@@ -1,9 +1,10 @@
 import os
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from evaluate import load # TODO: Fix cannot find
 import jiwer
 import csv
-from utils.constants import SHORT_LANG_CODES, OPUS_MODEL_MAP
+from utils.constants import SHORT_LANG_CODES
+
 
 def load_texts(file_path: str) -> List[str]:
     """Loads texts from file (one sentence per line)."""

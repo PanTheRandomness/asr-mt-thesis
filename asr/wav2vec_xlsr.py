@@ -1,8 +1,12 @@
-import librosa
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import librosa
 import torch
-from ..utils.model_loader import load_wav2vec2_asr_model
-from ..utils.constants import ASR_ALLOWED_LANGUAGES, ASR_LANG_CODES_FULL
+
+from utils.model_loader import load_wav2vec2_asr_model
+from utils.constants import ASR_ALLOWED_LANGUAGES
 
 WAV2VEC2_MODEL_NAME = "facebook/wav2vec2-large-xlsr-53"
 WAV2VEC2_MODEL, WAV2VEC2_PROCESSOR, DEVICE = load_wav2vec2_asr_model(WAV2VEC2_MODEL_NAME)
