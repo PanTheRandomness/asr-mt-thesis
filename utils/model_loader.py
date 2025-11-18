@@ -143,7 +143,7 @@ def load_wav2vec2_asr_model(model_name: str):
     try:
         model = Wav2Vec2ForCTC.from_pretrained(
             model_name,
-            torch_dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32  # FP16 VRAM:in säästämiseksi
+            torch_dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
         )
         model.to(DEVICE)
         print(f"✅ Loaded Wav2Vec2ForCTC model non-quantised/FP16 on {DEVICE}.")
