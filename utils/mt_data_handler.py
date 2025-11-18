@@ -34,9 +34,9 @@ def save_results(results: List[str], output_path: str):
         os.makedirs(output_dir, exist_ok=True)
     print(f"[MT Handler] Saving translation results to file: {output_path}")
     try:
-        with open(output_path, 'w', encoding='utc-8') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             for text in results:
                 f.write(text + "\n")
-            print("Saving complete.")
+            print("✅ Saving complete.")
     except Exception as e:
         print(f"❌ ERROR saving results to {output_path}: {e}")

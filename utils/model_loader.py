@@ -143,7 +143,7 @@ def load_wav2vec2_asr_model(model_name: str):
     try:
         model = Wav2Vec2ForCTC.from_pretrained(
             model_name,
-            torch_dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
+            dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
         )
         model.to(DEVICE)
         print(f"✅ Loaded Wav2Vec2ForCTC model non-quantised/FP16 on {DEVICE}.")
@@ -193,7 +193,7 @@ def load_nllb_mt_model(model_name: str):
         try:
             model = model_class.from_pretrained(
                 model_name,
-                torch_dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
+                dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
             )
             model.to(DEVICE)
             print(f"✅ Loaded NLLB model non-quantised on {DEVICE}.")
@@ -241,7 +241,7 @@ def load_opus_mt_model(model_name: str):
     try:
         model = AutoModelForSeq2SeqLM.from_pretrained(
             model_name,
-            torch_dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
+            dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
         )
         model.to(DEVICE)
         print(f"✅ Loaded Opus-MT model non-quantised on {DEVICE} (Dtype: {model.dtype}.")

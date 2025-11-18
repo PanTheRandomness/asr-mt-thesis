@@ -115,11 +115,55 @@ Projekti käyttää **Python 3.12**-versiota. Kaikki tarvittavat kirjastot on lu
 
 ### 1. Mallien ajo
 Käytä kansiossa `asr/` ja `mt/` olevia skriptejä mallin suorittamiseksi.
+Suorita skrptit projektin juurikansiossa.
 
-**Esimerkki (ASR - Whisper Large v2):**
+#### Puheentunnistus (ASR)
+Kaikkien äänitiedostojen putkittainen transkriptio:
 ```bash
 python -m asr.whisper_large
 ```
+
+```bash
+python -m asr.parakeet
+```
+
+```bash
+python -m asr.wav2vec_xlsr
+```
+
+Jos on tarpeen ajaa transkriptio vain yhdelle mallille, lisätään komennon perään ajettavan äänitiedoston polku komentoriviargumentissa:
+```bash
+python -m asr.malli data/kielilyhenne/tiedoston_nimi.wav
+```
+
+#### Konekääntäminen (MT)
+MT-skriptejä (NNLB, BLOOM, Opus-MT) ajetaan komentoriviargumenteilla.
+
+##### Yksittäinen käännös (Single Translation)
+**Argumentit:**
+- --src_lang [fi/en/fr]: Määrittää **lähdekielen** lyhenteen.
+- --tgt_lang [fi/en/fr]: Määrittää **kohdekielen** lyhenteen.
+- --src_file [POLKU]: Määrittää **lähdetekstin** tiedostopolun.
+- --batch_size [int size, default 4]: Määrittää ajettavan erän koon. Vapaaehtoinen argumentti BLOOM-käännöksissä. Oletusarvo 4.
+
+**Esimerkki (MT - NLLB):**
+```bash
+python -m mt.nllb --src_lang fi --tgt_lang en --src_file data/fi/source_texts.txt
+```
+
+##### Eräajo (Batch Translation)
+Käytä mt.run_all.py-ajuria suorittaaksesi käännöksen automaattisesti kaikkiin muihin kieliin yhden lähtökielen pohjalta.
+
+**Argumentit**:
+- --model [opus/nllb/bloom]: Määrittää käytettävän malliperheen.
+- --src_lang [fi/en/fr]: Määrittää lähdekielen lyhenteen.
+- --src_file [POLKU]: Määrittää lähdetekstin tiedostopolun.
+
+**Esimerkki (Batch MT - Opus):**
+```bash
+python -m mt.run_all --model opus --src_lang fi --src_file data/fi/source_texts.txt
+```
+
 #### Kvantisointi (INT4)
 Suuret mallit (kuten Whisper Large, NLLB ja BLOOM) ladataan automaattisesti 4-bittisesti (`utils/model_loader.py` kautta) VRAM-muistin säästämiseksi.
 
@@ -128,6 +172,9 @@ Suorita automaattinen arviointi skriptillä `evaluation.py` malliajon jälkeen.
 ```bash
 python evaluation.py
 ```
+**Argumentit:**
+- --src_file [POLKU]: Määrittää **arvioitavan tekstin** tiedostopolun.
+- --ref_file [POLKU]: Määrittää referenssitekstin tiedostopolun.
 Tämä skriptii laskee projektissa valitut metriikat (WER, WIL, METEOR, TER, COMET, MEANT) ja tallentaa tulokset.
 
 ---

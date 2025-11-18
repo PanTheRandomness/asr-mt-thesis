@@ -5,7 +5,7 @@ import jiwer
 import csv
 from utils.constants import SHORT_LANG_CODES
 
-
+# TODO: Add arguments
 def load_texts(file_path: str) -> List[str]:
     """Loads texts from file (one sentence per line)."""
     try:
