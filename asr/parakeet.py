@@ -1,7 +1,6 @@
 import sys
 import os
 import glob
-import re
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -14,13 +13,42 @@ from utils.asr_data_handler import save_asr_single_result
 from utils.sentence_splitter import SentenceSplitter
 
 PARAKEET_MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v3"
+MODEL_SHORT_NAME = PARAKEET_MODEL_NAME.split("/")[-1]
 PARAKEET_MODEL, _, DEVICE = load_nemo_asr_model(PARAKEET_MODEL_NAME)
 
 if PARAKEET_MODEL is None:
-    print("Model loading failed. Terminating process.")
+    print("❌ Model loading failed. Terminating process.")
     exit()
 else:
     print(f"✅ NeMo {PARAKEET_MODEL_NAME} has been loaded and is in use in {DEVICE}")
+
+def transcribe_and_save_single_file(audio_path: str, model_id: str):
+    """ Transcribes and saves the result for a single audio file, including checkpointing. """
+
+    model_short_name = model_id.split("/")[-1]
+    filename = os.path.basename(audio_path)
+    base_file_name = os.path.splitext(filename)[0]
+    output_filename = f"{base_file_name}_transcription.txt"
+
+    output_check_path = os.path.join("data", "results", "asr", model_short_name, output_filename)
+    if os.path.exists(output_check_path):
+        print(f"Skipping {filename}: results already exists at {output_check_path}.")
+        return
+
+    print(f"Transcribing: {audio_path}...")
+    transcription = transcribe_audio_parakeet(audio_path)
+
+    if transcription and "ERROR" not in transcription:
+        final_output = SentenceSplitter.split_and_clean(transcription)
+
+        save_asr_single_result(
+            transcription=final_output,
+            model_id=model_id,
+            output_filename_with_metadata=output_filename
+        )
+        print(f"✅ Transcription saved for {filename}.")
+    else:
+        print(f"❌ Failed to transcribe {audio_path}.")
 
 def transcribe_audio_parakeet(audio_path: str) -> str:
     """
@@ -32,10 +60,10 @@ def transcribe_audio_parakeet(audio_path: str) -> str:
     """
 
     if PARAKEET_MODEL is None:
-        return "ERROR: No model loaded."
+        return "❌ ERROR: No model loaded."
 
     if not os.path.exists(audio_path):
-        print(f"ERROR: File '{audio_path}' not found.")
+        print(f"❌ ERROR: File '{audio_path}' not found.")
         return ""
 
     TARGET_SR = 16000
@@ -72,10 +100,10 @@ def transcribe_audio_parakeet(audio_path: str) -> str:
             final_transcription = SentenceSplitter.split_and_clean(raw_transcription)
             return final_transcription
         else:
-            return "Transcription failed (empty result)."
+            return "❌ Transcription failed (empty result)."
 
     except Exception as e:
-        print(f"ERROR running NeMo model on file {audio_path}: {e}")
+        print(f"❌ ERROR running NeMo model on file {audio_path}: {e}")
         return ""
 
 def run_parakeet_transcription_on_dataset():
@@ -98,24 +126,20 @@ def run_parakeet_transcription_on_dataset():
         print(f"\n--- Starting Parakeet transcription for {full_lang} ({len(audio_files)} files) ---")
 
         for i, audio_path in enumerate(audio_files):
-            file_name = os.path.basename(audio_path)
-            print(f"[{i+1}/{len(audio_files)}] Transcribing: {audio_path}...")
-
-            transcription = transcribe_audio_parakeet(audio_path)
-
-            if transcription and "ERROR" not in transcription:
-                base_file_name = os.path.splitext(file_name)[0]
-                output_filename = f"{base_file_name}_transcription.txt"
-
-                save_asr_single_result(
-                    transcription=transcription,
-                    model_id=model_id,
-                    output_filename_with_metadata=output_filename
-                )
-            else:
-                print(f"❌ Failed to transcribe {audio_path}.")
+            transcribe_and_save_single_file(audio_path, model_id)
 
         print(f"--- {full_lang} transcription complete ---")
 
 if __name__ == "__main__":
-    run_parakeet_transcription_on_dataset()
+    if PARAKEET_MODEL is None:
+        exit()
+
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".wav"):
+        single_file_path = sys.argv[1]
+        print(f"\n--- Starting single file transcription: {single_file_path} ---")
+        if os.path.exists(single_file_path):
+            transcribe_and_save_single_file(single_file_path, PARAKEET_MODEL_NAME)
+        else:
+            print(f"❌ ERROR: Specified file not found: {single_file_path}")
+    else:
+        run_parakeet_transcription_on_dataset()
