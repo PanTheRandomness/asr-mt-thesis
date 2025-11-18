@@ -38,7 +38,7 @@ def translate_texts_nllb(
     try:
         target_id = tokenizer.lang_code_to_id[tgt_code]
     except KeyError:
-        print(f"ERROR: Target language :{tgt_lang} ({tgt_code}) is not supported by model :{MODEL_ID}.")
+        print(f"❌ ERROR: Target language :{tgt_lang} ({tgt_code}) is not supported by model :{MODEL_ID}.")
         return []
 
     print(f"Starting translation: {src_lang} ({src_code}) -> {tgt_lang} ({tgt_code}).")
@@ -68,7 +68,7 @@ def translate_texts_nllb(
             translated_batch = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
             translated_texts.extend(translated_batch)
 
-            print(f"Translated {len(translated_texts)} / {len(texts)}")
+            print(f"✅ Translated {len(translated_texts)} / {len(texts)}")
 
     return translated_texts
 
@@ -83,16 +83,16 @@ def main(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES, source_
     model, tokenizer, device = load_nllb_mt_model(MODEL_ID)
 
     if model is None or tokenizer is None:
-        print("Model loading failed. Terminating.")
+        print("❌ Model loading failed. Terminating.")
         return
 
     source_texts = load_data(source_path)
 
     if not source_texts:
-        print("No translatable data. Terminating.")
+        print("⚠️ No translatable data. Terminating.")
         return
 
     translated_texts = translate_texts_nllb(model, tokenizer, source_texts, src_lang, tgt_lang, batch_size=4)
     save_results(translated_texts, output_file)
 
-    print(f"NLLB Translation ({src_lang}->{tgt_lang}) complete. Saved to file: {output_file}")
+    print(f"✅ NLLB Translation ({src_lang}->{tgt_lang}) complete. Saved to file: {output_file}")

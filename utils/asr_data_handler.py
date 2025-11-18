@@ -30,7 +30,7 @@ def save_asr_results(
                 f.write(text.strip() + "\n")
             print("Saving complete.")
     except Exception as e:
-        print(f"ERROR saving ASR results to file {output_path}: {e}")
+        print(f"❌ ERROR saving ASR results to file {output_path}: {e}")
 
 def save_asr_single_result(
         transcription: str,
@@ -58,4 +58,4 @@ def save_asr_single_result(
             f.write(transcription.strip() + "\n")
             print("Saving complete.")
     except Exception as e:
-        print(f"ERROR saving ASR results to file {output_path}: {e}")
+        print(f"❌ ERROR saving ASR results to file {output_path}: {e}")

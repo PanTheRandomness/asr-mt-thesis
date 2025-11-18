@@ -1,4 +1,4 @@
-# Avoimen lähdekoodin kielimallien tarkkuus ja luotettavuus STT-käännöksissä eri ympäristöissä.
+# Avoimen lähdekoodin kielimallien tarkkuus ja luotettavuus STT-käännöksissä eri olosuhteissa.
 Opionnäytetyö: Pan Tuononen, Tietotekniikan Insinööti (AMK), Savonia AMK, 2025.
 ---
 ## Yleiskatsaus

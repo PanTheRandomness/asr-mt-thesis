@@ -63,7 +63,6 @@ def translate_texts_bloom(
                 pad_token_id=tokenizer.eos_token_id
             )
 
-            # TODO: What are special tokens?
             translated_batch = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
             cleaned_batch = []
@@ -78,7 +77,7 @@ def translate_texts_bloom(
 
             translate_texts.extend(cleaned_batch)
 
-            print(f"Translated {len(translate_texts)} / {len(texts)}.")
+            print(f"✅ Translated {len(translate_texts)} / {len(texts)}.")
 
         return translate_texts
 
@@ -96,22 +95,22 @@ def main(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES, source_
     model, tokenizer, device = load_bloom_mt_model(MODEL_ID)
 
     if model is None or tokenizer is None:
-        print("Model loading failed. Terminating.")
+        print("❌ Model loading failed. Terminating.")
         return
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = tokenizer.eos_token_id
-        print(f"BLOOM Tokenizer_ åad_token set to eos_token ({tokenizer.pad_token}.")
+        print(f"⚠️ BLOOM Tokenizer_ pad_token set to eos_token ({tokenizer.pad_token}.")
 
     source_texts = load_data(source_path)
 
     if not source_texts:
-        print("No translatable data. Terminating.")
+        print("⚠️ No translatable data. Terminating.")
         return
 
     translated_texts = translate_texts_bloom(model, tokenizer, source_texts, src_lang, tgt_lang, batch_size=batch_size)
 
     save_results(translated_texts, output_file)
 
-    print("Translation task finished.")
+    print("✅ Translation task finished.")

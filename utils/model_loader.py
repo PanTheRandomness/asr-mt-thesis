@@ -173,7 +173,7 @@ def load_nllb_mt_model(model_name: str):
     try:
         tokenizer = tokenizer_class.from_pretrained(model_name)
     except Exception as e:
-        print(f"ERROR loading tokenizer: {e}")
+        print(f"❌ ERROR loading tokenizer: {e}")
         return None, None, DEVICE
 
     model = None
@@ -187,7 +187,7 @@ def load_nllb_mt_model(model_name: str):
             )
             print(f"✅ Successfully loaded NLLB in 8-bit quantisation mode.")
         except Exception as e:
-            print(f"ERROR: 8-bit loading failed for NLLB: {e}. Attempting fallback non-quantised loading.")
+            print(f"❌ ERROR: 8-bit loading failed for NLLB: {e}. Attempting fallback non-quantised loading.")
 
     if model is None:
         try:
@@ -198,7 +198,7 @@ def load_nllb_mt_model(model_name: str):
             model.to(DEVICE)
             print(f"✅ Loaded NLLB model non-quantised on {DEVICE}.")
         except Exception as e:
-            print(f"ERROR: Fallback loading failed. Model may be too large for {DEVICE}: {e}")
+            print(f"❌ ERROR: Fallback loading failed. Model may be too large for {DEVICE}: {e}")
             return None, None, DEVICE
 
     model.eval()
@@ -235,7 +235,7 @@ def load_opus_mt_model(model_name: str):
     try:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
     except Exception as e:
-        print(f"ERROR loading tokenizer for {model_name}: {e}.")
+        print(f"❌ ERROR loading tokenizer for {model_name}: {e}.")
         return None, None, DEVICE
 
     try:
@@ -246,7 +246,7 @@ def load_opus_mt_model(model_name: str):
         model.to(DEVICE)
         print(f"✅ Loaded Opus-MT model non-quantised on {DEVICE} (Dtype: {model.dtype}.")
     except Exception as e:
-        print(f"ERROR loading model {model_name}: {e}.")
+        print(f"❌ ERROR loading model {model_name}: {e}.")
         return None, None, DEVICE
 
     model.eval()

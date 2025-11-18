@@ -20,7 +20,7 @@ def get_opus_model_id(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGU
 
     model_id = OPUS_MODEL_MAP.get((src_lang, tgt_lang))
     if model_id is None:
-        print(f"ERROR: Opus-MT model not configured for pair: {src_lang} -> {tgt_lang}.")
+        print(f"❌ ERROR: Opus-MT model not configured for pair: {src_lang} -> {tgt_lang}.")
     return model_id
 
 def translate_texts_opus(
@@ -70,11 +70,10 @@ def translate_texts_opus(
                 do_sample=False,
             )
 
-            # TODO: What are special tokens & should they be skipped?
             translated_batch = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
             translated_texts.extend(translated_batch)
 
-            print(f"Translated {len(translated_texts)} / {len(texts)}.")
+            print(f"✅ Translated {len(translated_texts)} / {len(texts)}.")
 
         return translated_texts
 
@@ -85,7 +84,7 @@ def main(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES, source_
 
     model_id = get_opus_model_id(src_lang, tgt_lang)
     if not model_id:
-        print("Model ID selection failed (Opus-MT). Terminating.")
+        print("❌ Model ID selection failed (Opus-MT). Terminating.")
         return
 
     source_path = os.path.join("..", "data", src_lang, source_file)
@@ -98,13 +97,13 @@ def main(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES, source_
     model, tokenizer, device = load_opus_mt_model(model_id)
 
     if model is None or tokenizer is None:
-        print("Model loading failed. Terminating.")
+        print("❌ Model loading failed. Terminating.")
         return
 
     source_texts = load_data(source_path)
 
     if not source_texts:
-        print("No translatable data. Terminating.")
+        print("⚠️ No translatable data. Terminating.")
         return
 
     translated_texts = translate_texts_opus(
@@ -118,4 +117,4 @@ def main(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES, source_
     if translated_texts:
         save_results(translated_texts, output_file)
     else:
-        print("Translation resulted in no texts. Check for errors.")
+        print("⚠️ Translation resulted in no texts. Check for errors.")

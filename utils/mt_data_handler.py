@@ -16,10 +16,10 @@ def load_data(file_path: str) -> List[str]:
         print(f"[MT Handler] Source texts loaded: {len(source_texts)} from file: {file_path}")
         return source_texts
     except FileNotFoundError:
-        print(f"ERROR: Fine {full_path} not found.")
+        print(f"❌ ERROR: Fine {full_path} not found.")
         return []
     except Exception as e:
-        print(f"ERROR loading data from {full_path}: {e}")
+        print(f"❌ ERROR loading data from {full_path}: {e}")
         return []
 
 def save_results(results: List[str], output_path: str):
@@ -39,4 +39,4 @@ def save_results(results: List[str], output_path: str):
                 f.write(text + "\n")
             print("Saving complete.")
     except Exception as e:
-        print(f"ERROR saving results to {output_path}: {e}")
+        print(f"❌ ERROR saving results to {output_path}: {e}")
