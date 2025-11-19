@@ -22,3 +22,36 @@ OPUS_MODEL_MAP: dict[Tuple[str, str], str] = {
 MT_ALLOWED_LANGUAGES = Literal["fi", "en", "fr"]
 
 ASR_ALLOWED_LANGUAGES = Literal["finnish", "english", "french"]
+
+CONDITIONS_MAP = {
+    "c1": {
+        "background_noise_level": "low/none",
+        "background_noise_type": None,
+        "voice_volume": "normal"
+    },
+    "c2": {
+        "background_noise_level": "low/none",
+        "background_noise_type": None,
+        "voice_volume": "low"
+    },
+    "c3": {
+        "background_noise_level": "medium",
+        "background_noise_type": "human",
+        "voice_volume": "normal"
+    },
+    "c4": {
+        "background_noise_level": "medium",
+        "background_noise_type": "traffic",
+        "voice_volume": "normal"
+    },
+    "c5": {
+        "background_noise_level": "high",
+        "background_noise_type": "human",
+        "voice_volume": "normal"
+    },
+    "c6": {
+        "background_noise_level": "high",
+        "background_noise_type": "traffic",
+        "voice_volume": "normal"
+    }
+}

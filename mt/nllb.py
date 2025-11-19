@@ -8,7 +8,7 @@ from typing import List
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from utils.model_loader import load_nllb_mt_model
-from utils.mt_data_handler import load_data, save_results
+from utils.data_handler import load_data, save_results_mt
 from utils.constants import NLLB_LANG_MAP, MT_ALLOWED_LANGUAGES
 
 MODEL_ID = "facebook/nllb-200-distilled-600M"
@@ -113,7 +113,7 @@ def main():
         return
 
     translated_texts = translate_texts_nllb(model, tokenizer, source_texts, src_lang, tgt_lang, batch_size=4)
-    save_results(translated_texts, output_file)
+    save_results_mt(translated_texts, output_file)
 
     print(f"✅ NLLB Translation ({src_lang} -> {tgt_lang}) complete.")
 

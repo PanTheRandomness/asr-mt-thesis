@@ -9,7 +9,7 @@ from transformers import pipeline
 
 from utils.model_loader import load_whisper_asr_model
 from utils.constants import SHORT_LANG_CODES, ASR_LANG_CODES_FULL, ASR_ALLOWED_LANGUAGES
-from utils.asr_data_handler import save_asr_single_result
+from utils.data_handler import save_asr_single_result
 from utils.sentence_splitter import SentenceSplitter
 
 WHISPER_MODEL_NAME = "openai/whisper-large-v2"

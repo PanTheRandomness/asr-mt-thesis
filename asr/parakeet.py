@@ -9,7 +9,7 @@ import librosa
 
 from utils.model_loader import load_nemo_asr_model
 from utils.constants import ASR_LANG_CODES_FULL
-from utils.asr_data_handler import save_asr_single_result
+from utils.data_handler import save_asr_single_result
 from utils.sentence_splitter import SentenceSplitter
 
 PARAKEET_MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v3"

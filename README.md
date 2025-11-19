@@ -89,7 +89,10 @@ Projekti käyttää **Python 3.12**-versiota. Kaikki tarvittavat kirjastot on lu
 ├── mt/                      # MT-mallien skriptit
 │   ├── nllb.py              # Koodi NLLB.200-distilled-600M -mallille
 │   └── opus_models.py       # Koodi Helsinki NLP Opus-MT -malleille
-├── evaluation.py            # Metriikoiden laskemisskripti (WER, COMET, TER, jne.)
+├── evaluation/              # Metriikoiden laskemisskriptit (WER, COMET, TER, jne.)
+│   ├── evaluate_asr.py      # Koodi ASR-tulosten arviointiin
+│   ├── evaluate_mt.py       # Koodi MT-tulosten arviointiin
+│   └── run_evaluation.py    # Kaikkien tulosten arviointiskripti
 └── requirements.txt         # Lista riippuvuuksista
 ```
 

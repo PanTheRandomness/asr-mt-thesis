@@ -8,7 +8,7 @@ from typing import List
 
 from utils.model_loader import load_opus_mt_model
 from utils.constants import OPUS_MODEL_MAP, MT_ALLOWED_LANGUAGES
-from utils.mt_data_handler import load_data, save_results
+from utils.data_handler import load_data, save_results_mt
 
 def get_opus_model_id(src_lang: MT_ALLOWED_LANGUAGES, tgt_lang: MT_ALLOWED_LANGUAGES) -> str:
     """
@@ -131,7 +131,7 @@ def main():
     )
 
     if translated_texts:
-        save_results(translated_texts, output_file)
+        save_results_mt(translated_texts, output_file)
         print(f"✅ Opus translation ({src_lang} -> {tgt_lang}) complete.")
     else:
         print("⚠️ Translation resulted in no texts. Check for errors.")

@@ -8,7 +8,7 @@ import torch
 
 from utils.model_loader import load_wav2vec2_asr_model
 from utils.constants import SHORT_LANG_CODES, ASR_LANG_CODES_FULL
-from utils.asr_data_handler import save_asr_single_result
+from utils.data_handler import save_asr_single_result
 from utils.sentence_splitter import SentenceSplitter
 
 WAV2VEC2_MODELS = {
