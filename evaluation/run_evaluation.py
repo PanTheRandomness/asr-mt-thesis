@@ -47,7 +47,7 @@ def run_asr_evaluation(lang_code: str):
 
     for short_model_name, folder_name in ASR_MODELS.items():
         print(f"\n--- Model: {short_model_name.upper()} ---")
-        pred_file = os.path.join("data", "results", "asr", folder_name, f"{lang_code}_transcription.txt") # TODO: take conditions into account!
+        pred_file = os.path.join("data", "results", "asr", folder_name, f"{lang_code}_transcription.txt")
 
         if not os.path.exists(pred_file):
             print(f"❌ Skipping: Prediction file not found: {pred_file}")
