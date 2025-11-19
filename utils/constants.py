@@ -10,12 +10,6 @@ NLLB_LANG_MAP = {
     "fr": "fra_Latn"
 }
 
-BLOOM_LANG_MAP = {
-    "fi": "Finnish",
-    "en": "English",
-    "fr": "French"
-}
-
 OPUS_MODEL_MAP: dict[Tuple[str, str], str] = {
     ("fi", "en"): "Helsinki-NLP/opus-mt-fi-en",
     ("en", "fi"): "Helsinki-NLP/opus-mt-en-fi",

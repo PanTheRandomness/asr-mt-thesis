@@ -1,4 +1,3 @@
-from numpy.core.defchararray import startswith
 from transformers import BitsAndBytesConfig
 import torch
 
@@ -155,9 +154,10 @@ def load_wav2vec2_asr_model(model_name: str):
     model.eval()
     return model, processor, DEVICE
 
+
 def load_nllb_mt_model(model_name: str):
     """
-    Loads NLLB model, prioritising 8-bit quantisation for VRAM efficiency on CUDA.
+    Loads NLLB model using 4-bit quantization via the common function.
 
     :param model_name: Model name
     :return: Quantised model, tokeniser & device
@@ -165,44 +165,12 @@ def load_nllb_mt_model(model_name: str):
 
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-    model_class = AutoModelForSeq2SeqLM
-    tokenizer_class = AutoTokenizer
-    task = "mt"
-    print(f"[{task.upper()}] Loading {model_name} (8-bit preferred) to device: {DEVICE}.")
-
-    try:
-        tokenizer = tokenizer_class.from_pretrained(model_name)
-    except Exception as e:
-        print(f"❌ ERROR loading tokenizer: {e}")
-        return None, None, DEVICE
-
-    model = None
-    if DEVICE.startswith("cuda"):
-        try:
-            model = model_class.from_pretrained(
-                model_name,
-                torch_dtype=torch.float16,
-                load_in_8bit=True,
-                device_map="auto"
-            )
-            print(f"✅ Successfully loaded NLLB in 8-bit quantisation mode.")
-        except Exception as e:
-            print(f"❌ ERROR: 8-bit loading failed for NLLB: {e}. Attempting fallback non-quantised loading.")
-
-    if model is None:
-        try:
-            model = model_class.from_pretrained(
-                model_name,
-                dtype=torch.float16 if DEVICE.startswith("cuda") else torch.float32
-            )
-            model.to(DEVICE)
-            print(f"✅ Loaded NLLB model non-quantised on {DEVICE}.")
-        except Exception as e:
-            print(f"❌ ERROR: Fallback loading failed. Model may be too large for {DEVICE}: {e}")
-            return None, None, DEVICE
-
-    model.eval()
-    return model, tokenizer, DEVICE
+    return load_quantized_model_and_processor(
+        AutoModelForSeq2SeqLM,
+        AutoTokenizer,
+        model_name,
+        "mt"
+    )
 
 def load_opus_mt_model(model_name: str):
     """

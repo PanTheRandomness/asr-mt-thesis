@@ -36,10 +36,11 @@ def translate_texts_nllb(
     src_code = NLLB_LANG_MAP.get(src_lang, src_lang)
     tgt_code = NLLB_LANG_MAP.get(tgt_lang, tgt_lang)
 
-    try:
-        target_id = tokenizer.lang_code_to_id[tgt_code]
-    except KeyError:
-        print(f"❌ ERROR: Target language :{tgt_lang} ({tgt_code}) is not supported by model :{MODEL_ID}.")
+    tokenizer.src_lang = src_code
+    target_id = tokenizer.convert_tokens_to_ids(tgt_code)
+
+    if target_id is None:
+        print(f"❌ ERROR: Model's forced_bos_token_id is not set. Terminating.")
         return []
 
     print(f"Starting translation: {src_lang} ({src_code}) -> {tgt_lang} ({tgt_code}).")
@@ -47,7 +48,6 @@ def translate_texts_nllb(
     translated_texts = []
     model.eval()
 
-    tokenizer.src_lang = src_code
     with torch.no_grad():
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
