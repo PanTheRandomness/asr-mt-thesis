@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import argparse
 import pandas as pd
 import jiwer
@@ -10,6 +11,29 @@ from utils.data_handler import load_data
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+def extract_metadata_from_filename(pred_file: str, lang_code: str) -> Dict[str, str]:
+    filename = os.path.basename(pred_file)
+
+    match = re.search(r"({}_[a-z]{{3}}_[m,n]_[c]\d)".format(lang_code), filename)
+
+    if not match:
+        print(f"❌ ERROR: Filename {filename} does not contain needed structure.")
+        return {}
+
+    identifier = match.group(1)
+    parts = identifier.split("_")
+
+    if len(parts) != 4:
+        print(f"❌ ERROR: {identifier} does not contain 4 parts.")
+        return {}
+
+    speaker_group = f"{parts[1]}_{parts[2]}"
+    condition_code = parts[3]
+
+    return {
+        "speaker_group": speaker_group,
+        "condition_code": condition_code
+    }
 
 def calculate_asr_metrics(references: List[str], predictions: List[str]) -> Dict [str, float]:
     """
@@ -79,6 +103,23 @@ def evaluate_single_transcription():
     ref_file = args.ref_file
     pred_file = args.pred_file
 
+    metadata = extract_metadata_from_filename(pred_file, lang_code)
+
+    if not metadata:
+        print(f"❌ Failed to parse metadata. Terminating.")
+        return
+
+    speaker_group = metadata["speaker_group"]
+    condition_code = metadata["condition_code"]
+    condition_details = CONDITIONS_MAP.get(
+        condition_code,
+        {
+            "background_noise_level": "Unknown",
+            "background_noise_type": "Unknown",
+            "voice_volume": "Unknown"
+        }
+    )
+
     print(f"\n--- ASR evaluation: {model_name.upper()} ({lang_code.upper()}) ---")
 
     references = load_data(ref_file)
@@ -89,10 +130,15 @@ def evaluate_single_transcription():
 
     metrics = calculate_asr_metrics(references, predictions)
 
-    # TODO: Add conditions
     results_data = {
         "Model": [model_name],
         "Language": [lang_code],
+        "Speaker_Type": [speaker_group.split("_")[0]], # nat/aks
+        "Speaker_Sex": [speaker_group.split("_")[1]], # m/n
+        "Condition_Code": [condition_code],
+        "Noise_Level": [condition_details.get("background_noise_level")],
+        "Noise_Type": [condition_details.get("background_noise_type")],
+        "Voice_Volume": [condition_details.get("voice_volume")],
         "WER": [metrics['WER']],
         "WIL": [metrics['WIL']],
         "Ref_File": [ref_file],
