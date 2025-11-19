@@ -8,7 +8,6 @@ from utils.constants import SHORT_LANG_CODES
 
 MODEL_MAP = {
     "nllb": "nllb.py",
-    "bloom": "bloom.py",
     "opus": "opus_models.py",
 }
 
@@ -22,11 +21,11 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("--model", type=str, required=True, choices=MODEL_MAP.keys(),
-                        help="Model name: nllb, bloom, tai opus.")
+                        help="Model name: nllb or opus.")
     parser.add_argument("--src_lang", type=str, required=True, choices=SHORT_LANG_CODES,
                         help="Source language (fi, en, fr).")
     parser.add_argument("--src_file", type=str, required=True,
-                        help="Path to source file (esim. data/fr/test_set.txt).")
+                        help="Path to source file (e.g., data/fr/test_set.txt).")
     args = parser.parse_args()
 
     src_lang = args.src_lang
@@ -68,7 +67,6 @@ def main():
             print(f"❌ ERROR translating {src_lang} -> {tgt_lang}!")
             print(f"Command: {' '.join(e.cmd)}")
             print(f"Model Standard Error (Stderr): {e.stderr.strip()}")
-            # print(f"Mallin Standard Output (Stdout): {e.stdout.strip()}")
 
         except FileNotFoundError:
             print(f"❌ FATAL ERROR: Python script file not found.")

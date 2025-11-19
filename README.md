@@ -20,11 +20,11 @@ ASR-mallit suorittavat **Speech-to-Text (STT)** -transkription.
 | **Parakeet-tdt-0.6b-v3**           | Transducer (TDT) | 600M            | **NeMo-malli**, optimoitu korkeaan suorituskykyyn.                                                                                                 |
 
 #### Wav2Vec 2.0 XLSR-53 -mallit (Yksityiskohtainen erittely)
-| Mallinimi | Kieli | Hugging Face ID | Huomioitavaa |
-|:---|:---|:---|:---|
-| **XLSR-53 Finnish** | Suomi | `jonatasgrosman/wav2vec2-large-xlsr-53-finnish` | Suomelle optimoitu malli. |
-| **Wav2Vec2 960h** | Englanti | `facebook/wav2vec2-large-960h` | Englanille optimoitu malli. |
-| **XLSR-53 French** | Ranska | `facebook/wav2vec2-large-xlsr-53-french` | Ranskalle optimoitu malli. |
+| Mallinimi          | Kieli   | Hugging Face ID                                | Huomioitavaa                |
+|:-------------------|:--------|:-----------------------------------------------|:----------------------------|
+| **XLSR-53 Finnish**| Suomi   | `jonatasgrosman/wav2vec2-large-xlsr-53-finnish`| Suomelle optimoitu malli.   |
+| **Wav2Vec2 960h**  | Englanti| `facebook/wav2vec2-large-960h`                 | Englanille optimoitu malli. |
+| **XLSR-53 French** | Ranska  | `facebook/wav2vec2-large-xlsr-53-french`       | Ranskalle optimoitu malli.  |
 
 ### Konekäännös (MT)
 MT-mallit suorittavat **Text-to-Text** -käännöksen.
@@ -32,7 +32,6 @@ MT-mallit suorittavat **Text-to-Text** -käännöksen.
 | Malli                       | Koko            | Kielituki  | Huomioitavaa                                    |
 |:----------------------------|:----------------|:-----------|:------------------------------------------------|
 | **NLLB-200-distilled-600M** | 600M            | 196 kieltä | Destilloitu versio, soveltuu 6GB VRAM-muistiin. |
-| **BLOOM**                   | (Useita kokoja) | 46 kieltä  | Käytetään MT-tehtävässä.                        |
 | **Helsinki-NLP Opus-MT**    | Useita          | fi, en, fr | Useita kapeamman domainin malleja (6 kpl).      |
 
 #### Helsinki-NLP Opus-MT-mallit (Yksityiskohtainen erittely)
@@ -89,7 +88,6 @@ Projekti käyttää **Python 3.12**-versiota. Kaikki tarvittavat kirjastot on lu
 │   └── parakeet.py          # Koodi Parakeet-tdt-0.6b-v3 -mallille (NeMo)
 ├── mt/                      # MT-mallien skriptit
 │   ├── nllb.py              # Koodi NLLB.200-distilled-600M -mallille
-│   ├── bloom.py             # Koodi BLOOM-mallille
 │   └── opus_models.py       # Koodi Helsinki NLP Opus-MT -malleille
 ├── evaluation.py            # Metriikoiden laskemisskripti (WER, COMET, TER, jne.)
 └── requirements.txt         # Lista riippuvuuksista
@@ -137,14 +135,13 @@ python -m asr.malli data/kielilyhenne/tiedoston_nimi.wav
 ```
 
 #### Konekääntäminen (MT)
-MT-skriptejä (NNLB, BLOOM, Opus-MT) ajetaan komentoriviargumenteilla.
+MT-skriptejä (NNLB, Opus-MT) ajetaan komentoriviargumenteilla.
 
 ##### Yksittäinen käännös (Single Translation)
 **Argumentit:**
 - --src_lang [fi/en/fr]: Määrittää **lähdekielen** lyhenteen.
 - --tgt_lang [fi/en/fr]: Määrittää **kohdekielen** lyhenteen.
 - --src_file [POLKU]: Määrittää **lähdetekstin** tiedostopolun.
-- --batch_size [int size, default 4]: Määrittää ajettavan erän koon. Vapaaehtoinen argumentti BLOOM-käännöksissä. Oletusarvo 4.
 
 **Esimerkki (MT - NLLB):**
 ```bash
@@ -155,7 +152,7 @@ python -m mt.nllb --src_lang fi --tgt_lang en --src_file data/fi/source_texts.tx
 Käytä mt.run_all.py-ajuria suorittaaksesi käännöksen automaattisesti kaikkiin muihin kieliin yhden lähtökielen pohjalta.
 
 **Argumentit**:
-- --model [opus/nllb/bloom]: Määrittää käytettävän malliperheen.
+- --model [opus/nllb]: Määrittää käytettävän malliperheen.
 - --src_lang [fi/en/fr]: Määrittää lähdekielen lyhenteen.
 - --src_file [POLKU]: Määrittää lähdetekstin tiedostopolun.
 
@@ -165,7 +162,7 @@ python -m mt.run_all --model opus --src_lang fi --src_file data/fi/source_texts.
 ```
 
 #### Kvantisointi (INT4)
-Suuret mallit (kuten Whisper Large, NLLB ja BLOOM) ladataan automaattisesti 4-bittisesti (`utils/model_loader.py` kautta) VRAM-muistin säästämiseksi.
+Suuret mallit (kuten Whisper Large ja NLLB) ladataan automaattisesti 4-bittisesti (`utils/model_loader.py` kautta) VRAM-muistin säästämiseksi.
 
 ### 2. Arviointi (Evaluation)
 Suorita automaattinen arviointi skriptillä `evaluation.py` malliajon jälkeen.
