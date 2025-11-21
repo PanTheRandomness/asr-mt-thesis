@@ -156,12 +156,11 @@ Käytä mt.run_all.py-ajuria suorittaaksesi käännöksen automaattisesti kaikki
 
 **Argumentit**:
 - --model [opus/nllb]: Määrittää käytettävän malliperheen.
-- --src_lang [fi/en/fr]: Määrittää lähdekielen lyhenteen.
-- --src_file [POLKU]: Määrittää lähdetekstin tiedostopolun.
+- --src_dir [POLKU]: Määrittää lähdetekstien hakemistopolun.
 
 **Esimerkki (Batch MT - Opus):**
 ```bash
-python -m mt.run_all --model opus --src_lang fi --src_file data/fi/source_texts.txt
+python -m mt.run_all --model opus --src_dir data/fi/
 ```
 
 #### Kvantisointi (INT4)

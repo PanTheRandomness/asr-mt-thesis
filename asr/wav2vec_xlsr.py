@@ -7,15 +7,9 @@ import librosa
 import torch
 
 from utils.model_loader import load_wav2vec2_asr_model
-from utils.constants import SHORT_LANG_CODES, ASR_LANG_CODES_FULL
+from utils.constants import SHORT_LANG_CODES, ASR_LANG_CODES_FULL, WAV2VEC2_MODEL_MAP
 from utils.data_handler import save_asr_single_result
 from utils.sentence_splitter import SentenceSplitter
-
-WAV2VEC2_MODELS = {
-    "fi": "jonatasgrosman/wav2vec2-large-xlsr-53-finnish",
-    "en": "facebook/wav2vec2-large-960h",
-    "fr": "facebook/wav2vec2-large-xlsr-53-french"
-}
 
 WAV2VEC2_MODEL = None
 WAV2VEC2_PROCESSOR = None
@@ -163,7 +157,7 @@ if __name__ == "__main__":
             print("❌ ERROR: Could not determine language code (fi/en/fr) from file path. Terminating.")
             exit(1)
 
-        WAV2VEC2_MODEL_NAME = WAV2VEC2_MODELS[lang_code]
+        WAV2VEC2_MODEL_NAME = WAV2VEC2_MODEL_MAP[lang_code]
         WAV2VEC2_MODEL, WAV2VEC2_PROCESSOR, DEVICE = load_wav2vec2_asr_model(WAV2VEC2_MODEL_NAME)
 
         if WAV2VEC2_MODEL is None:
@@ -176,7 +170,7 @@ if __name__ == "__main__":
             print(f"❌ ERROR: Specified file not found: {single_file_path}")
 
     else:
-        for lang_code, model_name in WAV2VEC2_MODELS.items():
+        for lang_code, model_name in WAV2VEC2_MODEL_MAP.items():
             print(f"\n" + 25 * "=")
             print(f"SWITCHING LANGUAGE: {lang_code.upper()} using model: {model_name}.")
             print(f"\n" + 25 * "=")

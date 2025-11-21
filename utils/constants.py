@@ -10,6 +10,12 @@ NLLB_LANG_MAP = {
     "fr": "fra_Latn"
 }
 
+WAV2VEC2_MODEL_MAP = {
+    "fi": "jonatasgrosman/wav2vec2-large-xlsr-53-finnish",
+    "en": "facebook/wav2vec2-large-960h",
+    "fr": "facebook/wav2vec2-large-xlsr-53-french"
+}
+
 OPUS_MODEL_MAP: dict[Tuple[str, str], str] = {
     ("fi", "en"): "Helsinki-NLP/opus-mt-fi-en",
     ("en", "fi"): "Helsinki-NLP/opus-mt-en-fi",

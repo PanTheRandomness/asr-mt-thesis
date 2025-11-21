@@ -118,5 +118,4 @@ def main():
     print(f"✅ NLLB Translation ({src_lang} -> {tgt_lang}) complete.")
 
 if __name__ == "__main__":
-    # TODO: Fix this!
     main()
