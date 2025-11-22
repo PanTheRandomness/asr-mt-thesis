@@ -107,7 +107,7 @@ def main():
     base_file_name = os.path.splitext(base_file_name_with_ext)[0]
     output_dir = os.path.join("data", "results", "mt", model_short_name)
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, f"{base_file_name}_opus_{src_lang}2{tgt_lang}_results.txt")
+    output_file = os.path.join(output_dir, f"{base_file_name.replace("-", "_")}_opus_{src_lang}2{tgt_lang}_results.txt")
 
     print(f"Loading Opus-MT model: {model_id}...")
     model, tokenizer, device = load_opus_mt_model(model_id)

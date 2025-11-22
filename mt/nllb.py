@@ -98,7 +98,7 @@ def main():
     base_file_name = os.path.splitext(base_file_name_with_ext)[0]
     output_dir = os.path.join("data", "results", "mt", MODEL_ID.replace("/", "_"))
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, f"{base_file_name}_nllb_{src_lang}2{tgt_lang}_results.txt")
+    output_file = os.path.join(output_dir, f"{base_file_name.replace("-", "_")}_nllb_{src_lang}2{tgt_lang}_results.txt")
 
     model, tokenizer, device = load_nllb_mt_model(MODEL_ID)
 

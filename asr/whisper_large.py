@@ -39,7 +39,7 @@ else:
 def transcribe_and_save_single_file(audio_path: str, short_lang: str):
     filename = os.path.basename(audio_path)
     metadata_suffix = filename.replace("-", "_").split('.')[0]
-    output_filename = f"{metadata_suffix}_{MODEL_SHORT_NAME}transcription.txt"
+    output_filename = f"{metadata_suffix}_{MODEL_SHORT_NAME}_transcription.txt"
 
     output_check_path = os.path.join("data", "results", "asr", MODEL_SHORT_NAME, output_filename)
     if os.path.exists(output_check_path):

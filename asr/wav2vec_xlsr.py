@@ -19,7 +19,7 @@ WAV2VEC2_MODEL_NAME = None
 def transcribe_and_save_single_file(audio_path: str, model_id: str):
     model_short_name = model_id.split("/")[-1]
     filename = os.path.basename(audio_path)
-    output_filename = f"{os.path.splitext(filename)[0]}_{model_short_name}_transcription.txt"
+    output_filename = f"{os.path.splitext(filename)[0]}_{model_short_name.replace("-", "_")}_transcription.txt"
 
     output_check_path = os.path.join("data", "results", "asr", model_short_name, output_filename)
     if os.path.exists(output_check_path):
@@ -116,7 +116,7 @@ def run_wav2vec_transcription_on_datasets(langs: list[str] = SHORT_LANG_CODES):
         for i, audio_path in enumerate(audio_files):
             filename = os.path.basename(audio_path)
             metadata_suffix = filename.replace("-", "_").split('.')[0]
-            output_filename = f"{metadata_suffix}_transcription.txt"
+            output_filename = f"{metadata_suffix}_{MODEL_SHORT_NAME.replace("-", "_")}.transcription.txt"
 
             output_check_path = os.path.join("data", "results", "asr", MODEL_SHORT_NAME, output_filename)
             if os.path.exists(output_check_path):
