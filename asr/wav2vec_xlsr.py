@@ -19,7 +19,7 @@ WAV2VEC2_MODEL_NAME = None
 def transcribe_and_save_single_file(audio_path: str, model_id: str):
     model_short_name = model_id.split("/")[-1]
     filename = os.path.basename(audio_path)
-    output_filename = f"{os.path.splitext(filename)[0]}_transcription.txt"
+    output_filename = f"{os.path.splitext(filename)[0]}_{model_short_name}_transcription.txt"
 
     output_check_path = os.path.join("data", "results", "asr", model_short_name, output_filename)
     if os.path.exists(output_check_path):

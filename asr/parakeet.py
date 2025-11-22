@@ -28,7 +28,7 @@ def transcribe_and_save_single_file(audio_path: str, model_id: str):
     model_short_name = model_id.split("/")[-1]
     filename = os.path.basename(audio_path)
     base_file_name = os.path.splitext(filename)[0]
-    output_filename = f"{base_file_name}_transcription.txt"
+    output_filename = f"{base_file_name}_{model_short_name}_transcription.txt"
 
     output_check_path = os.path.join("data", "results", "asr", model_short_name, output_filename)
     if os.path.exists(output_check_path):
