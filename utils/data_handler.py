@@ -1,4 +1,5 @@
 import os
+import re
 from typing import List
 
 def save_asr_results(
@@ -99,3 +100,29 @@ def save_results_mt(results: List[str], output_path: str):
             print("✅ Saving complete.")
     except Exception as e:
         print(f"❌ ERROR saving results to {output_path}: {e}")
+
+def write_data(data: List[str], filepath: str):
+    """Writes data (list of rows) to file. """
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            for line in data:
+                f.write(line + '\n')
+        return True
+    except Exception as e:
+        print(f"❌ ERROR writing data to {filepath}: {e}")
+        return False
+
+def normalize(text: str) -> str:
+    """
+    Applies standard normalisation rules for metrics calculation:
+    1. Lowercases the text.
+    2. Removes all specified punctuation.
+    3. Standardises all whitespace (including newlines) to a single space, effectively
+        joining any pre-split sentences into a single, clean line for evaluation.
+    """
+    text = text.lower()
+    text = re.sub(r'[.,:;!?"\'\\-]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = " ".join(text.split())
+    return text

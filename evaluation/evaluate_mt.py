@@ -6,16 +6,38 @@ import pandas as pd
 from evaluate import load
 from typing import List, Dict
 from utils.constants import SHORT_LANG_CODES
-from utils.data_handler import load_data
+from utils.data_handler import load_data, normalize
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-# TODO: Add COMET dependencies (loading may need its own script or evaluate.load('comet'))
 
-def calculate_mt_metrics(sources: List[str], predictions: List[str], references: List[List[str]]) -> Dict[str, float]:
+def calculate_mt_metrics(
+        sources: List[str],
+        predictions: List[str],
+        references: List[List[str]],
+        src_lang: str,
+        tgt_lang: str
+) -> Dict[str, float]:
     """
     Calculates MT-metrics (METEOR, TER, COMET, MEANT)
+
+    :param sources: List of source texts.
+    :param predictions: List of predicted/translated texts.
+    :param references: List of reference texts (List of "List of str").
+    :param src_lang: Source language code (e.g., 'fi').
+    :param tgt_lang: Target language code (e.g., 'en').
+    :return: Dictionary containing the calculated metrics.
     """
     results = {}
+
+    print("⏳ Normalizing texts for MT metrics...")
+    try:
+        sources = [normalize(s) for s in sources]
+        predictions = [normalize(p) for p in predictions]
+        references = [normalize(r) for r in references]
+        print("✅ Normalization complete.")
+    except Exception as e:
+        print(f"❌ Normalization failed: {e}")
+        pass
 
     if not sources or not predictions or not references:
         print("❌ ERROR: Source, predictions, or references list is empty.")
@@ -37,7 +59,7 @@ def calculate_mt_metrics(sources: List[str], predictions: List[str], references:
         meteor = load("meteor")
         results_meteor = meteor.compute(predictions=predictions, references=single_ref_list)
         results["METEOR"] = results_meteor.get('meteor', float('nan'))
-        print(f"✅ METEOR calculated")
+        print(f"✅ METEOR calculated: {results['METEOR']:.4f}")
     except Exception as e:
         print(f"❌ METEOR loading/calculation failed: {e}")
         results["METEOR"] = float('nan')
@@ -48,7 +70,7 @@ def calculate_mt_metrics(sources: List[str], predictions: List[str], references:
         ter = load("ter")
         results_ter = ter.compute(predictions=predictions, references=single_ref_list)
         results["TER"] = results_ter.get('score', float('nan'))
-        print(f"✅ TER calculated")
+        print(f"✅ TER calculated: {results['TER']:.4f}")
     except Exception as e:
         print(f"❌ TER loading/calculation failed: {e}")
         results["TER"] = float('nan')
@@ -59,7 +81,7 @@ def calculate_mt_metrics(sources: List[str], predictions: List[str], references:
         comet = load("comet", 'wmt20-comet-da')
         comet_results = comet.compute(
             predictions=predictions,
-            references=single_ref_list,
+            references=[ref[0] for ref in single_ref_list],
             sources=sources
         )
         results["COMET"] = comet_results.get('mean_score', float('nan'))
@@ -70,9 +92,20 @@ def calculate_mt_metrics(sources: List[str], predictions: List[str], references:
             f"❌ COMET loading/calculation failed (Check 'unbabel-comet' installation & GPU/memory capacity): {e}")
         results["COMET"] = float('nan')
 
-    # TODO: MEANT
     # MEANT
     print("⏳ MEANT...")
+    try:
+        meant = load("meant", lang=tgt_lang)
+        meant_results = meant.compute(
+            predictions=predictions,
+            references=[ref[0] for ref in single_ref_list]
+        )
+        results["MEANT"] = meant_results.get('meant_f', float('nan'))
+        print(f"✅ MEANT calculated (meant_f): {results['MEANT']:.4f}")
+
+    except Exception as e:
+        print(f"❌ MEANT loading/calculation failed (Check 'meant' installation): {e}")
+        results["MEANT"] = float('nan')
 
     return results
 
@@ -112,12 +145,14 @@ def evaluate_single_translation():
                         help="Source language (fi, en, fr).")
     parser.add_argument("--tgt_lang", type=str, required=True, choices=SHORT_LANG_CODES,
                         help="Target language (fi, en, fr).")
-    parser.add_argument("--src_file", type=str, required=True, # TODO: why source & pred separately?
+    parser.add_argument("--src_file", type=str, required=True,
                         help="Path to source file (e.g., data/results/mt/opus-mt-en-fi/translated_text.txt).")
     parser.add_argument("--ref_file", type=str, required=True,
                         help="Path to reference file (e.g., data/fi/fi_SOURCE.txt).")
     parser.add_argument("--pred_file", type=str, required=True,
                         help="Path to prediction file (e.g., data/results/mt/nllb-200-distilled-600M/fi_SOURCE_nllb_fi2en_results.txt).")
+    parser.add_argument("--asr_wer_status", type=str, default="N/A",
+                        help="Status flag indicating the quality of the source transcription (e.g., 'WER_HIGH').")
     args = parser.parse_args()
 
     model_name = args.model
@@ -126,8 +161,11 @@ def evaluate_single_translation():
     src_file = args.src_file
     ref_file = args.ref_file
     pred_file = args.pred_file
+    asr_wer_status = args.asr_wer_status
 
     print(f"\n--- MT evaluation: {model_name.upper()} ({src_lang.upper()} -> {tgt_lang.upper()}) ---")
+    if asr_wer_status != "N/A":
+        print(f"⚠️ ASR WER Status: {asr_wer_status}")
 
     sources = load_data(src_file)
     references = load_data(ref_file)
@@ -136,12 +174,13 @@ def evaluate_single_translation():
     if not sources or not references or not predictions:
         return
 
-    metrics = calculate_mt_metrics(sources, predictions, references)
+    metrics = calculate_mt_metrics(sources, predictions, references, src_lang, tgt_lang)
 
     results_data = {
         "Model": [model_name],
         "Source_Lang": [src_lang],
         "Target_Lang": [tgt_lang],
+        "ASR_WER_Status": [asr_wer_status],
         "METEOR": [metrics['METEOR']],
         "TER": [metrics['TER']],
         "COMET": [metrics['COMET']],
@@ -160,3 +199,6 @@ def evaluate_single_translation():
     output_path = os.path.join("data", "results", "evaluation", "mt", output_filename)
 
     save_evaluation_results(results_df, output_path)
+
+if __name__ == "__main__":
+    evaluate_single_translation()

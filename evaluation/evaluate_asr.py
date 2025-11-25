@@ -6,38 +6,53 @@ import pandas as pd
 import jiwer
 
 from typing import List, Dict
-from utils.constants import SHORT_LANG_CODES, CONDITIONS_MAP
-from utils.data_handler import load_data
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-def extract_metadata_from_filename(pred_file: str, lang_code: str) -> Dict[str, str]:
-    filename = os.path.basename(pred_file)
+SHORT_LANG_CODES = ["fi", "en", "fr"]
 
-    match = re.search(r"({}_[a-z]{{3}}_[m,n]_[c]\d)".format(lang_code), filename)
+def load_data(file_path: str) -> List[str]:
+    """
+    Load from text file (one sentence per line).
 
-    if not match:
-        print(f"❌ ERROR: Filename {filename} does not contain needed structure.")
-        return {}
+    :param file_path: Path to text file
+    :return: Source text list
+    """
+    try:
+        full_path = os.path.abspath(file_path)
 
-    identifier = match.group(1)
-    parts = identifier.split("_")
+        with open(full_path, 'r', encoding='utf-8') as f:
+            source_texts = [line.strip() for line in f.readlines() if line.strip()]
+        print(f"[Data Handler] Source texts loaded: {len(source_texts)} from file: {file_path}")
+        return source_texts
+    except FileNotFoundError:
+        print(f"❌ ERROR: Fine {full_path} not found.")
+        return []
+    except Exception as e:
+        print(f"❌ ERROR loading data from {full_path}: {e}")
+        return []
 
-    if len(parts) != 4:
-        print(f"❌ ERROR: {identifier} does not contain 4 parts.")
-        return {}
-
-    speaker_group = f"{parts[1]}_{parts[2]}"
-    condition_code = parts[3]
-
-    return {
-        "speaker_group": speaker_group,
-        "condition_code": condition_code
-    }
+def normalize(text: str) -> str:
+    """
+    Applies standard normalisation rules for metrics calculation:
+    1. Lowercases the text.
+    2. Removes all specified punctuation.
+    3. Standardises all whitespace (including newlines) to a single space, effectively
+        joining any pre-split sentences into a single, clean line for evaluation.
+    """
+    text = text.lower()
+    text = re.sub(r'[.,:;!?"\'\\-]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = " ".join(text.split())
+    return text
 
 def calculate_asr_metrics(references: List[str], predictions: List[str]) -> Dict [str, float]:
     """
-    Calculates ASR-metrics.
+    Calculates ASR-metrics (WER, WIL) for normalised text.
+
+    :param references: List of reference texts (must be normalised).
+    :param predictions: List of predictions (must be normalised).
+    :return: Calculated metrics.
     """
     if not references or not predictions:
         print("❌ ERROR: References or predictions list is empty.")
@@ -60,101 +75,135 @@ def calculate_asr_metrics(references: List[str], predictions: List[str]) -> Dict
         "WIL": metrics['wil']
     }
 
+def load_and_aggregate_results(filepath: str, new_result: Dict) -> pd.DataFrame:
+    """
+    Loads existing results (JSON), appends the new single result, and returns the DataFrame.
+    """
+    try:
+        if os.path.exists(filepath):
+            df = pd.read_json(filepath)
+        else:
+            df = pd.DataFrame()
+
+        new_df = pd.DataFrame([new_result])
+        df = pd.concat([df, new_df], ignore_index=True)
+        return df
+    except Exception as e:
+        print(f"⚠️ Warning: Could not load/aggregate ASR results from {filepath}. Starting new. Error: {e}")
+        return pd.DataFrame([new_result])
+
 def save_evaluation_results(results_df: pd.DataFrame, output_path: str):
     """
-    Saves results to JSON & CSV files.
+    Saves results to a single JSON file.
+    Final aggregation to CSV takes place in run_evaluation.py.
     """
 
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    # JSON
-    json_path = output_path.replace(".csv", ".json")
-    try:
-        results_df.to_json(json_path, orient='records', indent=4)
-        print(f"✅ Results saved to JSON: {json_path}")
-    except Exception as e:
-        print(f"❌ ERROR saving to JSON: {e}")
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
 
-    # CSV
-    csv_path = output_path.replace(".json", ".csv")
     try:
-        results_df.to_csv(csv_path, index=False)
-        print(f"✅ Results saved to CSV: {csv_path}")
+        results_df.to_json(output_path, orient='records', indent=4)
     except Exception as e:
-        print(f"❌ ERROR saving to CSV: {e}")
+        print(f"❌ ERROR saving ASR JSON: {e}")
 
 def evaluate_single_transcription():
     parser = argparse.ArgumentParser(
-        description="Calculates ASR metrics (WER, WIL).",
-        fromfile_prefix_chars=argparse.RawTextHelpFormatter
+        description="Calculates ASR metrics (WER, WIL) for a single transcription file against a full reference file.",
+        formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("--model", type=str, required=True, help="Model short name (e.g., whisper-large).")
     parser.add_argument("--lang", type=str, required=True, choices=SHORT_LANG_CODES, help="Language (fi, en, fr).")
     parser.add_argument("--ref_file", type=str, required=True,
-                        help="Path to reference file (e.g,. data/fi/fi_SOURCE.txt).")
+                        help="Path to the FULL normalized reference file (e.g,. data/fi/fi_SOURCE.txt).")
     parser.add_argument("--pred_file", type=str, required=True,
-                        help="Path to prediction file (e.g., data/results/asr/openai_whisper_large_v2/en_nat_m_c1_transcription.txt).")
+                        help="Path to the single (ASR) prediction file (e.g., data/results/asr/openai_whisper_large_v2/en_nat_m_c1_transcription.txt).")
+    parser.add_argument("--line_index", type=int, default=None,
+                        help="The line index in the full reference file that corresponds to the prediction (0-indexed).")
     args = parser.parse_args()
 
-    model_name = args.model
-    lang_code = args.lang
-    ref_file = args.ref_file
-    pred_file = args.pred_file
+    full_references = load_data(args.ref_file)
+    predictions = load_data(args.pred_file)
 
-    metadata = extract_metadata_from_filename(pred_file, lang_code)
+    filename = os.path.basename(args.pred_file)
+    match_model_suffix = re.search(r'_transcription\.txt$', filename, re.IGNORECASE)
 
-    if not metadata:
-        print(f"❌ Failed to parse metadata. Terminating.")
+    if match_model_suffix:
+        # fi_nat_n_c4
+        filename_base = filename[:match_model_suffix.start()]
+    else:
+        filename_base = os.path.splitext(filename)[0]
+
+    audio_file_name = f"{filename}.wav"
+    line_index = args.line_index
+
+    if line_index is None:
+        line_index = -1
+        match_index = re.search(r'[-_]c(\d+)', filename_base, re.IGNORECASE)
+
+        if match_index:
+            try:
+                index_str = match_index.group(1)
+                line_index = int(index_str) - 1
+            except ValueError:
+                line_index = -1
+
+    if len(full_references) == 1:
+        line_index = 0
+
+    if line_index < 0 or line_index >= len(full_references):
+        print(f"❌ ERROR: Invalid or uninferrable line index ({line_index}) for file {audio_file_name}. Skipping.")
         return
 
-    speaker_group = metadata["speaker_group"]
-    condition_code = metadata["condition_code"]
-    condition_details = CONDITIONS_MAP.get(
-        condition_code,
-        {
-            "background_noise_level": "Unknown",
-            "background_noise_type": "Unknown",
-            "voice_volume": "Unknown"
-        }
-    )
-
-    print(f"\n--- ASR evaluation: {model_name.upper()} ({lang_code.upper()}) ---")
-
-    references = load_data(ref_file)
-    predictions = load_data(pred_file)
-
-    if not references or not predictions:
+    if len(predictions) == 0:
+        print(f"❌ ERROR: Prediction file {args.pred_file} is empty.")
         return
 
-    metrics = calculate_asr_metrics(references, predictions)
+    single_prediction_line = " ".join(predictions).strip()
 
-    results_data = {
-        "Model": [model_name],
-        "Language": [lang_code],
-        "Speaker_Type": [speaker_group.split("_")[0]], # nat/aks
-        "Speaker_Sex": [speaker_group.split("_")[1]], # m/n
-        "Condition_Code": [condition_code],
-        "Noise_Level": [condition_details.get("background_noise_level")],
-        "Noise_Type": [condition_details.get("background_noise_type")],
-        "Voice_Volume": [condition_details.get("voice_volume")],
-        "WER": [metrics['WER']],
-        "WIL": [metrics['WIL']],
-        "Ref_File": [ref_file],
-        "Pred_file": [pred_file]
+    single_reference_line = " ".join(full_references).strip()
+
+    print("⏳ Normalising predictions for ASR metrics...")
+    predictions_normalized = [normalize(single_prediction_line)]
+    references = [normalize(single_reference_line)]
+
+    metrics = calculate_asr_metrics(references, predictions_normalized)
+
+    if pd.isna(metrics['WER']):
+        return
+
+    print(f"\n--- ASR Evaluation for {audio_file_name} (Line Index: {line_index}) ---")
+    print(f"  WER: {metrics['WER']:.4f}")
+    print(f"  WIL: {metrics['WIL']:.4f}")
+
+    result_data = {
+        "Task": "ASR",
+        "Model": args.model,
+        "Language": args.lang,
+        "Audio_File_Name": audio_file_name,
+        "Line_Index": line_index,
+        "WER": metrics['WER'],
+        "WIL": metrics['WIL'],
+        "Ref_Text_Normalized": references[0],
+        "Pred_Text_Normalized": predictions_normalized[0],
+        "Ref_File_Path": args.ref_file,
+        "Pred_File_Path": args.pred_file,
     }
 
-    results_df = pd.DataFrame(results_data)
+    try:
+        model_folder_name = args.pred_file.split(os.sep)[-2]
+    except IndexError:
+        model_folder_name = "unknown_model"
+        print(f"⚠️ WARNING: Could not infer model folder name from path: {args.pred_file}")
 
-    print(f"\n✅ ASR metrics calculated for {pred_file}:")
-    print(results_df[["WER", "WIL"]].to_markdown(index=False))
+    output_path = os.path.join("data", "results", "evaluation", "asr", f"asr_eval_{args.lang}_{model_folder_name}.json")
 
-    output_filename = f"asr_eval_{model_name}_{lang_code}.json"
-    output_path = os.path.join("data", "results", "evaluation", "asr", output_filename)
-
-    save_evaluation_results(results_df, output_path)
+    current_df = load_and_aggregate_results(output_path, result_data)
+    save_evaluation_results(current_df, output_path)
 
 if __name__ == "__main__":
-    # TODO: Normalise!
     evaluate_single_transcription()
