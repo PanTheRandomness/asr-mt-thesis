@@ -87,47 +87,6 @@ def normalize_all_references():
         except Exception as e:
             print(f"❌ ERROR processing {lang_code} reference: {e}")
 
-def concatenate_asr_outputs_for_mt(lang_code: str, asr_folder_name: str) -> str:
-    """
-    Aggregates all single ASR transcriptions to a single file.
-    Done so that MT-metrics such as COMET are able to calculate all source texts from a single file.
-    """
-
-    asr_eval_path = os.path.join("data", "results", "evaluation", "asr", f"asr_eval_{lang_code}_{asr_folder_name}.json")
-    if not os.path.exists(asr_eval_path):
-        print(f"❌ Cannot find ASR evaluation results for concatenation: {asr_eval_path}")
-        return None
-
-    aggregated_path = os.path.join(MT_SOURCES_DIR, f"{lang_code}_{asr_folder_name}_ASR_SOURCE.txt")
-
-    try:
-        asr_df = pd.read_json(asr_eval_path)
-        asr_df = asr_df.sort_values(by='Line_Index')
-
-        aggregated_texts = []
-
-        for index, row in asr_df.iterrows():
-            audio_filename_no_ext = os.path.splitext(row['Audio_File_Name'])[0]
-            asr_file_path = os.path.join(
-                "data", "results", "asr", asr_folder_name,
-                f"{audio_filename_no_ext}_{asr_folder_name.replace('-', '_')}_transcription.txt"
-            )
-
-            if os.path.exists(asr_file_path):
-                with open(asr_file_path, 'r', encoding='utf-8') as f:
-                    transcription = f.read().strip().replace('\n', ' ')
-                    aggregated_texts.append(transcription)
-            else:
-                aggregated_texts.append("")
-
-        write_data(aggregated_texts, aggregated_path)
-
-        return aggregated_path
-
-    except Exception as e:
-        print(f"❌ ERROR during ASR output concatenation for {lang_code}/{asr_folder_name}: {e}")
-        return None
-
 def run_asr_evaluation(lang_code: str):
     """Runs ASR evaluation for all models for one language."""
     ref_file = os.path.join(NORMALIZED_DIR, f"{lang_code}_SOURCE.txt")
@@ -284,14 +243,16 @@ def run_mt_evaluation_on_asr_source(src_lang: str, tgt_lang: str):
 
         print(f"\n--- ASR Source: {asr_short_name.upper()} ---")
 
+        asr_eval_file = os.path.join("data", "results", "evaluation", "asr",
+                                     f"asr_eval_{src_lang}_{asr_folder_name}.json")
+
+        if not os.path.exists(asr_eval_file):
+            print(
+                f"❌ Skipping ASR Source {asr_short_name}: ASR evaluation JSON not found at {asr_eval_file}.")
+            continue
+
         for speaker_group in SPEAKER_GROUPS:
             for condition_code in CONDITIONS_CODES:
-                segment_prefix = f"{speaker_group.replace('_', '-')}-{condition_code}"
-                if "_" in asr_folder_name and not asr_folder_name.startswith("opus"):
-                    # Esim. nvidia_parakeet_tdt_0_6b_v3 -> parakeet_tdt_0_6b_v3 -> parakeet-tdt-0-6b-v3
-                    asr_model_file_part = "_".join(asr_folder_name.split("_")[1:]).replace('_', '-')
-                else:
-                    asr_model_file_part = asr_folder_name.replace('_', '-')
                 asr_output_base_name = f"{src_lang}_{speaker_group}_{condition_code}_{asr_folder_name}_transcription"
                 asr_source_file = os.path.join(
                     "data", "results", "asr",
@@ -300,14 +261,6 @@ def run_mt_evaluation_on_asr_source(src_lang: str, tgt_lang: str):
                 )
 
                 if not os.path.exists(asr_source_file):
-                    continue
-
-                asr_eval_file = os.path.join("data", "results", "evaluation", "asr",
-                                             f"asr_eval_{src_lang}_{asr_folder_name}.json")
-
-                if not os.path.exists(asr_eval_file):
-                    print(
-                        f"❌ Skipping {asr_short_name} segment {speaker_group}_{condition_code}: ASR evaluation JSON not found.")
                     continue
 
                 print(f"  --- Segment: {speaker_group.upper()}_{condition_code.upper()} ---")
@@ -333,12 +286,6 @@ def run_mt_evaluation_on_asr_source(src_lang: str, tgt_lang: str):
                     if not os.path.exists(pred_file):
                         print(f" ❌ Skipping: MT Prediction file not found: {pred_file}")
                         continue
-
-                    if not os.path.exists(pred_file):
-                        pred_file = os.path.join(
-                            "data", "results", "mt",
-                            pred_file_name
-                        )
 
                     command = [
                         sys.executable,
@@ -438,14 +385,14 @@ def main():
 
     # 1. ASR Evaluation (generates WER data per row)
     normalize_all_references()
-#    for lang in SHORT_LANG_CODES:
- #       run_asr_evaluation(lang)
+    for lang in SHORT_LANG_CODES:
+        run_asr_evaluation(lang)
 
     # 2. MT Evaluation with Human Source
- #   for src_lang in SHORT_LANG_CODES:
-  #      for tgt_lang in SHORT_LANG_CODES:
-   #         if src_lang != tgt_lang:
-    #            run_mt_evaluation_on_human_source(src_lang, tgt_lang)
+    for src_lang in SHORT_LANG_CODES:
+        for tgt_lang in SHORT_LANG_CODES:
+            if src_lang != tgt_lang:
+                run_mt_evaluation_on_human_source(src_lang, tgt_lang)
 
     # 3. MT Evaluation with ASR Output Source (uses ASR evaluation JSON for quality flagging)
     for src_lang in SHORT_LANG_CODES:

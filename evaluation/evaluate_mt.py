@@ -2,6 +2,9 @@ import sys
 import os
 import re
 import argparse
+import json
+
+import numpy as np
 import pandas as pd
 
 from evaluate import load
@@ -74,7 +77,9 @@ def calculate_mt_metrics(
         print("✅ Normalization complete.")
     except Exception as e:
         print(f"❌ Normalization failed: {e}")
-        pass
+        sources = []
+        predictions = []
+        references = []
 
     if not sources or not predictions or not references:
         print("❌ ERROR: Source, predictions, or references list is empty.")
@@ -131,6 +136,69 @@ def calculate_mt_metrics(
 
     return results
 
+
+def get_asr_metadata_and_metrics(asr_eval_file: str) -> Dict:
+    """Reads ASR evaluation JSON and extracts relevant metadata and mean WER/WIL."""
+
+    nan_metadata = {
+        "WER": np.nan, "WIL": np.nan, "High_WER_Percentage": np.nan,
+        "Speaker_Group": np.nan, "Speaker_Type": np.nan, "Speaker_Gender": np.nan,
+        "Condition_Code": np.nan, "Noise_Level": np.nan, "Noise_Type": np.nan,
+        "Voice_Volume": np.nan, "Audio_File_Name": np.nan
+    }
+
+    if asr_eval_file is None or not asr_eval_file or asr_eval_file.upper() == "HUMAN SOURCE":
+        print(f"INFO: ASR Source status is {asr_eval_file}. Returning empty metadata structure.")
+
+        dummy_data = {
+            "Audio_File_Name": ["Human Source"],
+            "Line_Index": [-1],
+            "Speaker_Group": ["N/A"],
+            "Speaker_Type": ["N/A"],
+            "Speaker_Gender": ["N/A"],
+            "Condition_Code": ["N/A"],
+            "Noise_Level": ["N/A"],
+            "Noise_Type": ["N/A"],
+            "Voice_Volume": ["N/A"],
+            "WER": [0.0],
+            "WIL": [0.0],
+            "High_WER_Percentage": [0.0],
+        }
+        return pd.DataFrame(dummy_data)
+
+    try:
+        asr_df = pd.read_json(asr_eval_file)
+
+        if asr_df.empty:
+            return nan_metadata
+
+        first_row = asr_df.iloc[0].to_dict()
+
+        meta_keys = [
+            'Speaker_Group', 'Speaker_Type', 'Speaker_Gender',
+            'Condition_Code', 'Noise_Level', 'Noise_Type', 'Voice_Volume',
+            'Audio_File_Name'
+        ]
+
+        metadata = {k: first_row.get(k, np.nan) for k in meta_keys}
+
+        mean_wer = asr_df['WER'].mean()
+        mean_wil = asr_df['WIL'].mean()
+
+        high_wer_percentage = (asr_df['WER'] > 0.4).sum() / len(asr_df) if len(asr_df) > 0 else np.nan
+
+        metadata.update({
+            "WER": mean_wer,
+            "WIL": mean_wil,
+            "High_WER_Percentage": high_wer_percentage
+        })
+
+        return metadata
+
+    except Exception as e:
+        print(f"❌ ERROR reading or parsing ASR evaluation JSON {asr_eval_file}: {e}")
+        return nan_metadata
+
 def save_evaluation_results(results_df: pd.DataFrame, output_path: str):
     """
     Saves results to JSON & CSV files.
@@ -173,7 +241,7 @@ def evaluate_single_translation():
                         help="Path to reference file (e.g., data/fi/fi_SOURCE.txt).")
     parser.add_argument("--pred_file", type=str, required=True,
                         help="Path to prediction file (e.g., data/results/mt/nllb-200-distilled-600M/fi_SOURCE_nllb_fi2en_results.txt).")
-    parser.add_argument("--asr_wer_status", type=str, default="N/A",
+    parser.add_argument("--asr_wer_status", type=str, default="Human Source",
                         help="Status flag indicating the quality of the source transcription (e.g., 'WER_HIGH').")
     args = parser.parse_args()
 
@@ -185,9 +253,16 @@ def evaluate_single_translation():
     pred_file = args.pred_file
     asr_wer_status = args.asr_wer_status
 
+    if asr_wer_status == "Human Source":
+        asr_metadata = get_asr_metadata_and_metrics(None)
+        asr_status_display = "Human Source"
+    else:
+        asr_metadata = get_asr_metadata_and_metrics(asr_wer_status)
+        asr_status_display = f"ASR Source ({os.path.basename(asr_wer_status).replace('asr_eval_', '').replace('.json', '')})"
+
     print(f"\n--- MT evaluation: {model_name.upper()} ({src_lang.upper()} -> {tgt_lang.upper()}) ---")
-    if asr_wer_status != "N/A":
-        print(f"⚠️ ASR WER Status: {asr_wer_status}")
+    if asr_wer_status != "Human Source":
+        print(f"⚠️ ASR WER Status: {asr_status_display} (Mean WER: {asr_metadata['WER']:.4f})")
 
     sources = load_data(src_file)
     references = load_data(ref_file)
@@ -199,10 +274,23 @@ def evaluate_single_translation():
     metrics = calculate_mt_metrics(sources, predictions, references, src_lang, tgt_lang)
 
     results_data = {
+        "Task": ["MT"],
         "Model": [model_name],
+        "Language": [tgt_lang],
+        "Audio_File_Name": [asr_metadata["Audio_File_Name"]],
+        "Speaker_Group": [asr_metadata["Speaker_Group"]],
+        "Speaker_Type": [asr_metadata["Speaker_Type"]],
+        "Speaker_Gender": [asr_metadata["Speaker_Gender"]],
+        "Condition_Code": [asr_metadata["Condition_Code"]],
+        "Noise_Level": [asr_metadata["Noise_Level"]],
+        "Noise_Type": [asr_metadata["Noise_Type"]],
+        "Voice_Volume": [asr_metadata["Voice_Volume"]],
         "Source_Lang": [src_lang],
         "Target_Lang": [tgt_lang],
-        "ASR_WER_Status": [asr_wer_status],
+        "ASR_WER_Status": [asr_status_display],
+        "High_WER_Percentage": [asr_metadata["High_WER_Percentage"]],
+        "WER": [asr_metadata['WER']],
+        "WIL": [asr_metadata['WIL']],
         "METEOR": [metrics['METEOR']],
         "TER": [metrics['TER']],
         "COMET": [metrics['COMET']],

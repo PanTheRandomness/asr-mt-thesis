@@ -2,14 +2,49 @@ import sys
 import os
 import re
 import argparse
-import pandas as pd
 import jiwer
+
+import pandas as pd
+import numpy as np
 
 from typing import List, Dict
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 SHORT_LANG_CODES = ["fi", "en", "fr"]
+
+CONDITIONS_MAP = {
+    "c1": {
+        "background_noise_level": "low/none",
+        "background_noise_type": None,
+        "voice_volume": "normal"
+    },
+    "c2": {
+        "background_noise_level": "low/none",
+        "background_noise_type": None,
+        "voice_volume": "low"
+    },
+    "c3": {
+        "background_noise_level": "medium",
+        "background_noise_type": "human",
+        "voice_volume": "normal"
+    },
+    "c4": {
+        "background_noise_level": "medium",
+        "background_noise_type": "traffic",
+        "voice_volume": "normal"
+    },
+    "c5": {
+        "background_noise_level": "high",
+        "background_noise_type": "human",
+        "voice_volume": "normal"
+    },
+    "c6": {
+        "background_noise_level": "high",
+        "background_noise_type": "traffic",
+        "voice_volume": "normal"
+    }
+}
 
 def load_data(file_path: str) -> List[str]:
     """
@@ -138,7 +173,7 @@ def evaluate_single_transcription():
     else:
         filename_base = os.path.splitext(filename)[0]
 
-    audio_file_name = f"{filename}.wav"
+    audio_file_name = f"{filename_base}.wav"
     line_index = args.line_index
 
     if line_index is None:
@@ -164,7 +199,6 @@ def evaluate_single_transcription():
         return
 
     single_prediction_line = " ".join(predictions).strip()
-
     single_reference_line = " ".join(full_references).strip()
 
     print("⏳ Normalising predictions for ASR metrics...")
@@ -175,6 +209,51 @@ def evaluate_single_transcription():
 
     if pd.isna(metrics['WER']):
         return
+
+    try:
+        match = re.match(r'([a-z]{2})[-_]([a-z]{3})[-_]([a-z]{1})[-_](c[1-6])', filename_base)
+
+        if match:
+            lang_code = match.group(1)
+            speaker_type = match.group(2)
+            speaker_gender = match.group(3)
+            condition_code = match.group(4)
+            speaker_group = f"{speaker_type}_{speaker_gender}"
+
+            condition_data = CONDITIONS_MAP.get(condition_code, {})
+
+            meta_data = {
+                "Speaker_Group": speaker_group,
+                "Speaker_Type": speaker_type,
+                "Speaker_Gender": speaker_gender,
+                "Condition_Code": condition_code,
+                "Noise_Level": condition_data.get("background_noise_level", np.nan),
+                "Noise_Type": condition_data.get("background_noise_type", np.nan),
+                "Voice_Volume": condition_data.get("voice_volume", np.nan),
+                "Source_Lang": args.lang,
+                "Target_Lang": np.nan,
+                "ASR_WER_Status": "N/A (ASR Task)",
+                "High_WER_Percentage": np.nan,
+            }
+
+            audio_file_name = f"{lang_code}-{speaker_type}-{speaker_gender}-{condition_code}.wav"
+        else:
+            print(f"⚠️ Varoitus: Ei kyetty parsimaan metatietoja ASR-tiedostosta: {filename_base}")
+            meta_data = {
+                "Speaker_Group": np.nan, "Speaker_Type": np.nan, "Speaker_Gender": np.nan,
+                "Condition_Code": np.nan, "Noise_Level": np.nan, "Noise_Type": np.nan,
+                "Voice_Volume": np.nan, "Source_Lang": args.lang, "Target_Lang": np.nan,
+                "ASR_WER_Status": "N/A (ASR Task)", "High_WER_Percentage": np.nan
+            }
+
+    except Exception as e:
+        print(f"❌ Virhe ASR-metatietojen parsinnassa: {e}")
+        meta_data = {
+            "Speaker_Group": np.nan, "Speaker_Type": np.nan, "Speaker_Gender": np.nan,
+            "Condition_Code": np.nan, "Noise_Level": np.nan, "Noise_Type": np.nan,
+            "Voice_Volume": np.nan, "Source_Lang": args.lang, "Target_Lang": np.nan,
+            "ASR_WER_Status": "N/A (ASR Task)", "High_WER_Percentage": np.nan
+        }
 
     print(f"\n--- ASR Evaluation for {audio_file_name} (Line Index: {line_index}) ---")
     print(f"  WER: {metrics['WER']:.4f}")
@@ -188,6 +267,10 @@ def evaluate_single_transcription():
         "Line_Index": line_index,
         "WER": metrics['WER'],
         "WIL": metrics['WIL'],
+        "METEOR": np.nan,
+        "TER": np.nan,
+        "COMET": np.nan,
+        **meta_data,
         "Ref_Text_Normalized": references[0],
         "Pred_Text_Normalized": predictions_normalized[0],
         "Ref_File_Path": args.ref_file,
