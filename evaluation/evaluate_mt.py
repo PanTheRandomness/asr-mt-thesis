@@ -1,14 +1,51 @@
 import sys
 import os
+import re
 import argparse
 import pandas as pd
 
 from evaluate import load
 from typing import List, Dict
-from utils.constants import SHORT_LANG_CODES
-from utils.data_handler import load_data, normalize
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+SHORT_LANG_CODES = ["fi", "en", "fr"]
+
+def load_data(file_path: str) -> List[str]:
+    """
+    Load from text file (one sentence per line).
+
+    :param file_path: Path to text file
+    :return: Source text list
+    """
+    try:
+        full_path = os.path.abspath(file_path)
+
+        with open(full_path, 'r', encoding='utf-8') as f:
+            source_texts = [line.strip() for line in f.readlines() if line.strip()]
+        print(f"[Data Handler] Source texts loaded: {len(source_texts)} from file: {file_path}")
+        return source_texts
+    except FileNotFoundError:
+        print(f"❌ ERROR: Fine {full_path} not found.")
+        return []
+    except Exception as e:
+        print(f"❌ ERROR loading data from {full_path}: {e}")
+        return []
+
+
+def normalize(text: str) -> str:
+    """
+    Applies standard normalisation rules for metrics calculation:
+    1. Lowercases the text.
+    2. Removes all specified punctuation.
+    3. Standardises all whitespace (including newlines) to a single space, effectively
+        joining any pre-split sentences into a single, clean line for evaluation.
+    """
+    text = text.lower()
+    text = re.sub(r'[.,:;!?"\'\\-]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = " ".join(text.split())
+    return text
 
 def calculate_mt_metrics(
         sources: List[str],
@@ -18,7 +55,7 @@ def calculate_mt_metrics(
         tgt_lang: str
 ) -> Dict[str, float]:
     """
-    Calculates MT-metrics (METEOR, TER, COMET, MEANT)
+    Calculates MT-metrics (METEOR, TER, COMET)
 
     :param sources: List of source texts.
     :param predictions: List of predicted/translated texts.
@@ -41,7 +78,7 @@ def calculate_mt_metrics(
 
     if not sources or not predictions or not references:
         print("❌ ERROR: Source, predictions, or references list is empty.")
-        return {"METEOR": float('nan'), "TER": float('nan'), "COMET": float('nan'), "MEANT": float('nan')}
+        return {"METEOR": float('nan'), "TER": float('nan'), "COMET": float('nan')}
 
     single_ref_list = [[ref] for ref in references]
 
@@ -92,21 +129,6 @@ def calculate_mt_metrics(
             f"❌ COMET loading/calculation failed (Check 'unbabel-comet' installation & GPU/memory capacity): {e}")
         results["COMET"] = float('nan')
 
-    # MEANT
-    print("⏳ MEANT...")
-    try:
-        meant = load("meant", lang=tgt_lang)
-        meant_results = meant.compute(
-            predictions=predictions,
-            references=[ref[0] for ref in single_ref_list]
-        )
-        results["MEANT"] = meant_results.get('meant_f', float('nan'))
-        print(f"✅ MEANT calculated (meant_f): {results['MEANT']:.4f}")
-
-    except Exception as e:
-        print(f"❌ MEANT loading/calculation failed (Check 'meant' installation): {e}")
-        results["MEANT"] = float('nan')
-
     return results
 
 def save_evaluation_results(results_df: pd.DataFrame, output_path: str):
@@ -137,10 +159,10 @@ def save_evaluation_results(results_df: pd.DataFrame, output_path: str):
 
 def evaluate_single_translation():
     parser = argparse.ArgumentParser(
-        description="Calculates MT metrics (METEOR, TER, COMET, MEANT).",
+        description="Calculates MT metrics (METEOR, TER, COMET).",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument("--model", type=str, required=True, help="Model short name (e.g., nllb, opus-mt-fi-en).")
+    parser.add_argument("--model", type=str, required=True, help="Model short name (e.g., nllb, opus).")
     parser.add_argument("--src_lang", type=str, required=True, choices=SHORT_LANG_CODES,
                         help="Source language (fi, en, fr).")
     parser.add_argument("--tgt_lang", type=str, required=True, choices=SHORT_LANG_CODES,
@@ -184,7 +206,6 @@ def evaluate_single_translation():
         "METEOR": [metrics['METEOR']],
         "TER": [metrics['TER']],
         "COMET": [metrics['COMET']],
-        "MEANT": [metrics['MEANT']],
         "Source_File": [src_file],
         "Ref_File": [ref_file],
         "Pred_File": [pred_file]
@@ -193,7 +214,7 @@ def evaluate_single_translation():
     results_df = pd.DataFrame(results_data)
 
     print("\n✅ MT metrics calculated:")
-    print(results_df[["METEOR", "TER", "COMET", "MEANT"]].to_markdown(index=False))
+    print(results_df[["METEOR", "TER", "COMET"]].to_markdown(index=False))
 
     output_filename = f"mt_evaluation_{model_name}_{src_lang}2{tgt_lang}.json"
     output_path = os.path.join("data", "results", "evaluation", "mt", output_filename)

@@ -167,9 +167,9 @@ python -m mt.run_all --model opus --src_dir data/fi/
 Suuret mallit (kuten Whisper Large ja NLLB) ladataan automaattisesti 4-bittisesti (`utils/model_loader.py` kautta) VRAM-muistin säästämiseksi.
 
 ### 2. Arviointi (Evaluation)
-Suorita automaattinen arviointi skriptillä `evaluation.py` malliajon jälkeen.
+Suorita automaattinen arviointi skriptillä `run_evaluation.py` malliajon jälkeen. Tämä ajaa kaikki arvioinnit peräjälkeen.
 ```bash
-python evaluation.py
+python -m evaluation.run_evaluation
 ```
 **Argumentit:**
 - --src_file [POLKU]: Määrittää **arvioitavan tekstin** tiedostopolun.
@@ -186,4 +186,3 @@ Tämä skriptii laskee projektissa valitut metriikat (WER, WIL, METEOR, TER, COM
 * **METEOR** (Metric of Evaluation of Translation with Explicit Ordering)
 * **TER** (Translation Edit Rate)
 * **COMET** (Cross-Lingual Optimised Metric for Evaluation of Translation)
-* **MEANT**
