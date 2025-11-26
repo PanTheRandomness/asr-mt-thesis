@@ -193,7 +193,7 @@ def run_mt_evaluation_on_human_source(src_lang: str, tgt_lang: str):
         command = [
             sys.executable,
             mt_script_path,
-            "--model", f"{short_model_name}_human_source",
+            "--model", f"{short_model_name}",
             "--src_lang", src_lang,
             "--tgt_lang", tgt_lang,
             "--src_file", src_file,

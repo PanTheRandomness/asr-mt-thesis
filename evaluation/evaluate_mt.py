@@ -120,7 +120,7 @@ def calculate_mt_metrics(
     # COMET
     print("⏳ Calculating COMET...")
     try:
-        comet = load("comet", 'wmt20-comet-da')
+        comet = load("comet", 'wmt20-comet-da',keep_in_memory=True)
         comet_results = comet.compute(
             predictions=predictions,
             references=[ref[0] for ref in single_ref_list],
