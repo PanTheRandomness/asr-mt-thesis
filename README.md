@@ -1,5 +1,5 @@
 # Avoimen lähdekoodin kielimallien tarkkuus ja luotettavuus STT-käännöksissä eri olosuhteissa.
-Opionnäytetyö: Pan Tuononen, Tietotekniikan Insinööti (AMK), Savonia AMK, 2025.
+Opionnäytetyö: Pan Tuononen, Tietotekniikan Insinööri (AMK), Savonia AMK, 2025.
 ---
 ## Yleiskatsaus
 Tämä arkisto sisältää koodin ja konfiguraatiot opinnäytetyön käytännön osuuteen, jossa mitataan ennalta koulutettujen avoimen lähdekoodin kielimallien suorituskykyä **puheentunnistuksen (ASR)** ja **konekäännöksen (MT)** tehtävissä.
